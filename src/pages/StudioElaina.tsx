@@ -1,4 +1,5 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import QRCode from "qrcode";
 import {
   Sparkles,
   Download,
@@ -10,6 +11,9 @@ import {
   Check,
   Layers,
   Eye,
+  KeyRound,
+  User,
+  QrCode,
 } from "lucide-react";
 import { Card3D } from "@/components/Card3D";
 import { DashboardShell } from "@/components/DashboardShell";
@@ -36,8 +40,8 @@ import {
    - 3D parallax depth card (CSS perspective)
    - 8 gradient presets
    - Sparkle particles + stars
-   - Character layer tilt
-   - Adjustable intensity
+   - QR code with student credentials
+   - Username & password display
    ═══════════════════════════════════════════ */
 
 const GRADIENT_PRESETS = [
@@ -61,7 +65,11 @@ interface ProfileCardData {
   showStars: boolean;
   showSparkles: boolean;
   showCharacter: boolean;
+  showQR: boolean;
+  showCredentials: boolean;
   tiltIntensity: number;
+  username: string;
+  password: string;
 }
 
 const DEFAULT_CARD: ProfileCardData = {
@@ -72,7 +80,11 @@ const DEFAULT_CARD: ProfileCardData = {
   showStars: true,
   showSparkles: true,
   showCharacter: true,
+  showQR: true,
+  showCredentials: true,
   tiltIntensity: 15,
+  username: "elaina001",
+  password: "Elaina@2026",
 };
 
 /* Sparkle particles */
@@ -136,6 +148,33 @@ function StarDecoration({ count = 8 }: { count?: number }) {
   );
 }
 
+/* QR Code component using canvas */
+function QRCodeDisplay({ value, size = 120 }: { value: string; size?: number }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    if (canvasRef.current && value) {
+      QRCode.toCanvas(canvasRef.current, value, {
+        width: size,
+        margin: 1,
+        color: {
+          dark: "#ffffff",
+          light: "rgba(0,0,0,0)",
+        },
+        errorCorrectionLevel: "M",
+      }).catch(() => {});
+    }
+  }, [value, size]);
+
+  return (
+    <div className="inline-flex items-center justify-center rounded-xl p-2"
+      style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(4px)" }}
+    >
+      <canvas ref={canvasRef} style={{ width: size, height: size }} />
+    </div>
+  );
+}
+
 export default function StudioElaina() {
   const [card, setCard] = useState<ProfileCardData>(DEFAULT_CARD);
   const [copied, setCopied] = useState(false);
@@ -146,21 +185,16 @@ export default function StudioElaina() {
   const resetCard = () => setCard(DEFAULT_CARD);
 
   const handleCopyCSS = () => {
-    const css = `.card-elaina {
-  background: linear-gradient(135deg, ${gradient.from}, ${gradient.via}, ${gradient.to});
-  border-radius: 1.5rem;
-  padding: 2rem;
-  color: white;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 20px 60px -12px ${gradient.from}66;
-  perspective: 1000px;
-}`;
+    const css = `.card-elaina {\n  background: linear-gradient(135deg, ${gradient.from}, ${gradient.via}, ${gradient.to});\n  border-radius: 1.5rem;\n  padding: 2rem;\n  color: white;\n  position: relative;\n  overflow: hidden;\n  box-shadow: 0 20px 60px -12px ${gradient.from}66;\n  perspective: 1000px;\n}`;
     navigator.clipboard.writeText(css).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
   };
+
+  const qrValue = card.username
+    ? `https://school.app/login?u=${encodeURIComponent(card.username)}`
+    : "https://school.app";
 
   return (
     <DashboardShell>
@@ -234,6 +268,52 @@ export default function StudioElaina() {
               </div>
             </Card3D>
 
+            {/* ── CREDENTIALS ── */}
+            <Card3D intensity={2} className="p-5 obsidian-sheen">
+              <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                <KeyRound className="size-4 text-primary" />
+                Akun Siswa
+              </h3>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Tampilkan di Kartu</Label>
+                  <Button
+                    variant={card.showCredentials ? "default" : "outline"}
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => setCard({ ...card, showCredentials: !card.showCredentials })}
+                  >
+                    {card.showCredentials ? "Aktif" : "Mati"}
+                  </Button>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Username</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-2.5 size-3.5 text-muted-foreground" />
+                    <Input
+                      className="pl-8"
+                      value={card.username}
+                      onChange={(e) => setCard({ ...card, username: e.target.value })}
+                      placeholder="username_siswa"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Password</Label>
+                  <div className="relative">
+                    <KeyRound className="absolute left-3 top-2.5 size-3.5 text-muted-foreground" />
+                    <Input
+                      className="pl-8"
+                      type="text"
+                      value={card.password}
+                      onChange={(e) => setCard({ ...card, password: e.target.value })}
+                      placeholder="Password"
+                    />
+                  </div>
+                </div>
+              </div>
+            </Card3D>
+
             <Card3D intensity={2} className="p-5 obsidian-sheen">
               <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
                 <Palette className="size-4 text-primary" />
@@ -301,6 +381,17 @@ export default function StudioElaina() {
                     {card.showCharacter ? "Aktif" : "Mati"}
                   </Button>
                 </div>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs flex items-center gap-1"><QrCode className="size-3" /> QR Code</Label>
+                  <Button
+                    variant={card.showQR ? "default" : "outline"}
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => setCard({ ...card, showQR: !card.showQR })}
+                  >
+                    {card.showQR ? "Aktif" : "Mati"}
+                  </Button>
+                </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs">Intensitas 3D: {card.tiltIntensity}°</Label>
                   <input
@@ -325,7 +416,7 @@ export default function StudioElaina() {
                 <p>Layer 0 — Gradient background (paling jauh)</p>
                 <p>Layer 1 — Bintang & sparkle</p>
                 <p>Layer 2 — Karakter Elaina</p>
-                <p>Layer 3 — Teks & badge (paling dekat)</p>
+                <p>Layer 3 — Teks, badge, QR & kredensial (paling dekat)</p>
               </div>
             </Card3D>
           </div>
@@ -347,13 +438,12 @@ export default function StudioElaina() {
                 style={{
                   background: `linear-gradient(135deg, ${gradient.from}, ${gradient.via}, ${gradient.to})`,
                   boxShadow: `0 20px 60px -12px ${gradient.from}66, 0 0 0 1px ${gradient.from}22`,
-                  aspectRatio: "3/4",
+                  aspectRatio: card.showQR || card.showCredentials ? "3/4.5" : "3/4",
                 }}
               >
                 {/* LAYER 0: Background gradient + texture */}
                 <ParallaxLayer depth={-0.5}>
                   <div className="absolute inset-0" aria-hidden="true">
-                    {/* Subtle radial overlay */}
                     <div
                       className="absolute inset-0 opacity-30"
                       style={{
@@ -378,8 +468,9 @@ export default function StudioElaina() {
                   </ParallaxLayer>
                 )}
 
-                {/* LAYER 3: UI overlay (name, badge) — closest to viewer */}
+                {/* LAYER 3: UI overlay (name, badge, QR, credentials) */}
                 <ParallaxLayer depth={0.8}>
+                  {/* Top: Name & badge */}
                   <div className="absolute inset-x-0 top-0 p-6 z-10">
                     <div className="flex items-center gap-3">
                       <div
@@ -401,21 +492,53 @@ export default function StudioElaina() {
                       </div>
                     </div>
                   </div>
-                </ParallaxLayer>
 
-                {/* Bottom info */}
-                <div className="absolute inset-x-0 bottom-0 p-6 z-10">
-                  <div className="h-px bg-white/20 mb-3" />
-                  <p className="text-sm text-white/80 drop-shadow-sm">{card.subtitle}</p>
-                  <div className="mt-2 flex items-center gap-3 text-xs text-white/50">
-                    <span className="flex items-center gap-1">
-                      <Star className="size-3 fill-current" />
-                      Scholaris
-                    </span>
-                    <span>·</span>
-                    <span>3D Card</span>
+                  {/* Bottom: QR + Credentials */}
+                  <div className="absolute inset-x-0 bottom-0 p-6 z-10">
+                    <div className="h-px bg-white/20 mb-3" />
+
+                    {/* QR Code */}
+                    {card.showQR && card.username && (
+                      <div className="flex justify-center mb-3">
+                        <QRCodeDisplay value={qrValue} size={100} />
+                      </div>
+                    )}
+
+                    {/* Credentials */}
+                    {card.showCredentials && (
+                      <div
+                        className="rounded-xl p-3 mb-3"
+                        style={{ background: "rgba(255,255,255,0.12)", backdropFilter: "blur(6px)" }}
+                      >
+                        <div className="flex items-center gap-1.5 text-[10px] text-white/60 mb-2 uppercase tracking-wider font-medium">
+                          <KeyRound className="size-2.5" />
+                          Akun Login
+                        </div>
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-2">
+                            <User className="size-3 text-white/50" />
+                            <span className="text-sm font-mono font-medium tracking-wide">{card.username}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <KeyRound className="size-3 text-white/50" />
+                            <span className="text-sm font-mono font-medium tracking-wide">{card.password}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Bottom info */}
+                    <p className="text-sm text-white/80 drop-shadow-sm">{card.subtitle}</p>
+                    <div className="mt-2 flex items-center gap-3 text-xs text-white/50">
+                      <span className="flex items-center gap-1">
+                        <Star className="size-3 fill-current" />
+                        Modern School Web
+                      </span>
+                      <span>·</span>
+                      <span>3D Card</span>
+                    </div>
                   </div>
-                </div>
+                </ParallaxLayer>
 
                 {/* Decorative corner glow */}
                 <div
@@ -430,7 +553,7 @@ export default function StudioElaina() {
             <Card3D intensity={1} className="w-full max-w-sm mt-6 p-4 obsidian-sheen">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-xs font-semibold text-muted-foreground">CSS Output</p>
-                <Button variant="ghost" size="icon-sm" onClick={handleCopyCSS}>
+                <Button variant="ghost" size="sm" onClick={handleCopyCSS}>
                   {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
                 </Button>
               </div>
