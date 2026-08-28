@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="id" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scholaris — Sistem Manajemen Sekolah</title>
+  <script type="module" crossorigin src="/assets/index-UawtgKak.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/react-vendor-twUPT20K.js">
+  <link rel="modulepreload" crossorigin href="/assets/framer-motion-CRk4231t.js">
+  <link rel="modulepreload" crossorigin href="/assets/radix-ui-DGI-bPbs.js">
+  <link rel="stylesheet" crossorigin href="/assets/index-DAsAaxWB.css">
+</head>
+
+
+<body>
+  <script>
+    /* Prevent flash of wrong theme on load */
+    (function() {
+      var t = localStorage.getItem('scholaris-theme');
+      if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', t);
+      if (t === 'dark') document.documentElement.classList.add('dark');
+    })();
+  </script>
+  <div id="root"></div>
+</body>
+
+</html>
