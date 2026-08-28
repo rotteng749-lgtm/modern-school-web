@@ -17,7 +17,7 @@ import { DashboardShell } from "@/components/DashboardShell";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/hooks/use-auth";
+import { useLocalAuth as useAuth } from "@/hooks/use-local-auth";
 
 /* ═══════════════════════════════════════════
    ADMIN DASHBOARD — Modern School Web
