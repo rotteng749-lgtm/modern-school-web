@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import {
   Sparkles,
   Download,
@@ -8,12 +8,19 @@ import {
   Wand2,
   Copy,
   Check,
+  Layers,
+  Eye,
 } from "lucide-react";
 import { Card3D } from "@/components/Card3D";
 import { DashboardShell } from "@/components/DashboardShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ElainaCharacter } from "@/components/ElainaCharacter";
+import {
+  ParallaxCard,
+  ParallaxLayer,
+} from "@/components/ParallaxCard";
 import {
   Select,
   SelectContent,
@@ -23,9 +30,14 @@ import {
 } from "@/components/ui/select";
 
 /* ═══════════════════════════════════════════
-   STUDIO ELAINA — Anime-inspired 3D Card Builder
-   Inspired by "Wandering Witch: The Journey of Elaina"
-   Soft pastels, sparkles, gradients, 3D tilt
+   STUDIO ELAINA — 3D Anime Character Card
+   Features:
+   - SVG anime witch character
+   - 3D parallax depth card (CSS perspective)
+   - 8 gradient presets
+   - Sparkle particles + stars
+   - Character layer tilt
+   - Adjustable intensity
    ═══════════════════════════════════════════ */
 
 const GRADIENT_PRESETS = [
@@ -39,16 +51,16 @@ const GRADIENT_PRESETS = [
   { name: "Twilight", from: "#c084fc", via: "#6366f1", to: "#312e81" },
 ];
 
-const BADGE_OPTIONS = ["Siswa", "Guru", "Admin", "Ketua Kelas", "OSIS", "Perpustakaan", "Lab", "Custom"];
+const BADGE_OPTIONS = ["Siswa", "Guru", "Admin", "Ketua Kelas", "OSIS", "Perpustakaan", "Lab", "Witch", "Custom"];
 
 interface ProfileCardData {
   name: string;
   role: string;
   subtitle: string;
   gradientIndex: number;
-  customBadge: string;
   showStars: boolean;
   showSparkles: boolean;
+  showCharacter: boolean;
   tiltIntensity: number;
 }
 
@@ -57,14 +69,14 @@ const DEFAULT_CARD: ProfileCardData = {
   role: "Siswa",
   subtitle: "XII IPA 1 · NISN 0081234001",
   gradientIndex: 0,
-  customBadge: "",
   showStars: true,
   showSparkles: true,
-  tiltIntensity: 12,
+  showCharacter: true,
+  tiltIntensity: 15,
 };
 
-/* Sparkle particle component */
-function SparkleParticles({ count = 12 }: { count?: number }) {
+/* Sparkle particles */
+function SparkleParticles({ count = 15 }: { count?: number }) {
   const particles = Array.from({ length: count }, (_, i) => ({
     id: i,
     left: `${Math.random() * 100}%`,
@@ -94,13 +106,13 @@ function SparkleParticles({ count = 12 }: { count?: number }) {
 }
 
 /* Star decoration */
-function StarDecoration({ count = 6 }: { count?: number }) {
+function StarDecoration({ count = 8 }: { count?: number }) {
   const stars = Array.from({ length: count }, (_, i) => ({
     id: i,
-    left: `${10 + Math.random() * 80}%`,
-    top: `${10 + Math.random() * 80}%`,
+    left: `${8 + Math.random() * 84}%`,
+    top: `${8 + Math.random() * 84}%`,
     delay: `${Math.random() * 4}s`,
-    size: 8 + Math.random() * 10,
+    size: 6 + Math.random() * 10,
     rotation: Math.random() * 360,
   }));
 
@@ -131,37 +143,18 @@ export default function StudioElaina() {
 
   const gradient = GRADIENT_PRESETS[card.gradientIndex];
 
-  // Handle 3D tilt on preview card
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const el = previewRef.current;
-    if (!el) return;
-    if (!window.matchMedia("(pointer: fine)").matches) return;
-
-    const rect = el.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width;
-    const y = (e.clientY - rect.top) / rect.height;
-    const rotateX = (0.5 - y) * card.tiltIntensity;
-    const rotateY = (x - 0.5) * card.tiltIntensity;
-    el.style.transform = `perspective(600px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.03)`;
-  };
-
-  const handleMouseLeave = () => {
-    const el = previewRef.current;
-    if (!el) return;
-    el.style.transform = "perspective(600px) rotateX(0) rotateY(0) scale(1)";
-  };
-
   const resetCard = () => setCard(DEFAULT_CARD);
 
   const handleCopyCSS = () => {
     const css = `.card-elaina {
   background: linear-gradient(135deg, ${gradient.from}, ${gradient.via}, ${gradient.to});
-  border-radius: 1.25rem;
+  border-radius: 1.5rem;
   padding: 2rem;
   color: white;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 8px 32px ${gradient.from}44;
+  box-shadow: 0 20px 60px -12px ${gradient.from}66;
+  perspective: 1000px;
 }`;
     navigator.clipboard.writeText(css).then(() => {
       setCopied(true);
@@ -180,7 +173,7 @@ export default function StudioElaina() {
               <Sparkles className="size-5 text-primary" />
             </div>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              Buat kartu profil bergaya anime dengan efek 3D — terinspirasi dari Elaina
+              Buat kartu profil 3D bergaya anime — mouse ke kartu untuk efek paralaks
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -197,7 +190,7 @@ export default function StudioElaina() {
 
         <div className="grid gap-6 lg:grid-cols-2">
           {/* ── CONTROLS ── */}
-          <div className="space-y-5">
+          <div className="space-y-4">
             <Card3D intensity={2} className="p-5 obsidian-sheen">
               <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
                 <Wand2 className="size-4 text-primary" />
@@ -230,21 +223,13 @@ export default function StudioElaina() {
                     </Select>
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Custom Badge</Label>
+                    <Label className="text-xs">Subtitle</Label>
                     <Input
-                      value={card.customBadge}
-                      onChange={(e) => setCard({ ...card, customBadge: e.target.value })}
-                      placeholder="Atau ketik sendiri"
+                      value={card.subtitle}
+                      onChange={(e) => setCard({ ...card, subtitle: e.target.value })}
+                      placeholder="XII IPA 1 · NISN..."
                     />
                   </div>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Subtitle</Label>
-                  <Input
-                    value={card.subtitle}
-                    onChange={(e) => setCard({ ...card, subtitle: e.target.value })}
-                    placeholder="XII IPA 1 · NISN 008..."
-                  />
                 </div>
               </div>
             </Card3D>
@@ -252,14 +237,14 @@ export default function StudioElaina() {
             <Card3D intensity={2} className="p-5 obsidian-sheen">
               <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
                 <Palette className="size-4 text-primary" />
-                Gradient Preset
+                Gradient
               </h3>
               <div className="grid grid-cols-4 gap-2">
                 {GRADIENT_PRESETS.map((g, i) => (
                   <button
                     key={g.name}
                     onClick={() => setCard({ ...card, gradientIndex: i })}
-                    className={`relative h-12 rounded-lg transition-all ${
+                    className={`relative h-10 rounded-lg transition-all ${
                       card.gradientIndex === i
                         ? "ring-2 ring-primary ring-offset-2 ring-offset-background scale-105"
                         : "hover:scale-105"
@@ -270,7 +255,7 @@ export default function StudioElaina() {
                     title={g.name}
                   >
                     {card.gradientIndex === i && (
-                      <Check className="absolute inset-0 m-auto size-4 text-white drop-shadow" />
+                      <Check className="absolute inset-0 m-auto size-3.5 text-white drop-shadow" />
                     )}
                   </button>
                 ))}
@@ -280,7 +265,7 @@ export default function StudioElaina() {
             <Card3D intensity={2} className="p-5 obsidian-sheen">
               <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
                 <Star className="size-4 text-primary" />
-                Efek
+                Efek & 3D
               </h3>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
@@ -305,8 +290,19 @@ export default function StudioElaina() {
                     {card.showStars ? "Aktif" : "Mati"}
                   </Button>
                 </div>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Karakter</Label>
+                  <Button
+                    variant={card.showCharacter ? "default" : "outline"}
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => setCard({ ...card, showCharacter: !card.showCharacter })}
+                  >
+                    {card.showCharacter ? "Aktif" : "Mati"}
+                  </Button>
+                </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Intensitas Tilt 3D: {card.tiltIntensity}°</Label>
+                  <Label className="text-xs">Intensitas 3D: {card.tiltIntensity}°</Label>
                   <input
                     type="range"
                     min={0}
@@ -318,71 +314,117 @@ export default function StudioElaina() {
                 </div>
               </div>
             </Card3D>
+
+            {/* Layer info */}
+            <Card3D intensity={1} className="p-4 obsidian-sheen">
+              <div className="flex items-center gap-2 mb-2">
+                <Layers className="size-3.5 text-primary" />
+                <p className="text-xs font-semibold text-muted-foreground">Lapisan 3D</p>
+              </div>
+              <div className="space-y-1 text-[11px] text-muted-foreground">
+                <p>Layer 0 — Gradient background (paling jauh)</p>
+                <p>Layer 1 — Bintang & sparkle</p>
+                <p>Layer 2 — Karakter Elaina</p>
+                <p>Layer 3 — Teks & badge (paling dekat)</p>
+              </div>
+            </Card3D>
           </div>
 
           {/* ── PREVIEW ── */}
           <div className="flex flex-col items-center">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 self-start">
-              Preview
+              Preview — Gerakkan mouse ke kartu
             </h3>
 
-            {/* 3D Preview Card */}
-            <div
-              ref={previewRef}
-              onMouseMove={handleMouseMove}
-              onMouseLeave={handleMouseLeave}
-              className="relative w-full max-w-sm rounded-2xl p-8 text-white shadow-2xl transition-transform duration-200 ease-out cursor-pointer"
-              style={{
-                background: `linear-gradient(135deg, ${gradient.from}, ${gradient.via}, ${gradient.to})`,
-                boxShadow: `0 20px 60px -12px ${gradient.from}66, 0 0 0 1px ${gradient.from}22`,
-                transformStyle: "preserve-3d",
-                perspective: "600px",
-              }}
+            {/* 3D Parallax Card */}
+            <ParallaxCard
+              intensity={card.tiltIntensity}
+              className="w-full max-w-sm"
             >
-              {/* Sparkles overlay */}
-              {card.showSparkles && <SparkleParticles count={15} />}
-
-              {/* Stars overlay */}
-              {card.showStars && <StarDecoration count={8} />}
-
-              {/* Card content */}
-              <div className="relative z-10">
-                {/* Avatar placeholder */}
-                <div className="mb-4 flex items-center gap-3">
-                  <div className="flex size-16 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-sm text-2xl font-bold shadow-lg">
-                    {card.name.split(" ").map((w) => w[0]).join("").slice(0, 2)}
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold tracking-tight drop-shadow-sm">
-                      {card.name}
-                    </p>
-                    <span className="inline-block mt-1 rounded-full bg-white/25 backdrop-blur-sm px-3 py-0.5 text-xs font-medium">
-                      {card.customBadge || card.role}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="h-px bg-white/20 my-4" />
-
-                <p className="text-sm text-white/80">{card.subtitle}</p>
-
-                <div className="mt-4 flex items-center gap-4 text-xs text-white/60">
-                  <span className="flex items-center gap-1">
-                    <Star className="size-3 fill-current" />
-                    Scholaris
-                  </span>
-                  <span>·</span>
-                  <span>Modern School Web</span>
-                </div>
-              </div>
-
-              {/* Decorative gradient circle */}
               <div
-                className="absolute -bottom-8 -right-8 size-32 rounded-full opacity-30 blur-2xl"
-                style={{ background: `radial-gradient(circle, white, transparent)` }}
-                aria-hidden="true"
-              />
-            </div>
+                ref={previewRef}
+                className="relative w-full rounded-2xl overflow-hidden text-white shadow-2xl"
+                style={{
+                  background: `linear-gradient(135deg, ${gradient.from}, ${gradient.via}, ${gradient.to})`,
+                  boxShadow: `0 20px 60px -12px ${gradient.from}66, 0 0 0 1px ${gradient.from}22`,
+                  aspectRatio: "3/4",
+                }}
+              >
+                {/* LAYER 0: Background gradient + texture */}
+                <ParallaxLayer depth={-0.5}>
+                  <div className="absolute inset-0" aria-hidden="true">
+                    {/* Subtle radial overlay */}
+                    <div
+                      className="absolute inset-0 opacity-30"
+                      style={{
+                        background: `radial-gradient(circle at 30% 20%, rgba(255,255,255,0.2), transparent 60%)`,
+                      }}
+                    />
+                  </div>
+                </ParallaxLayer>
+
+                {/* LAYER 1: Stars & sparkles */}
+                <ParallaxLayer depth={-0.2}>
+                  {card.showStars && <StarDecoration count={10} />}
+                  {card.showSparkles && <SparkleParticles count={20} />}
+                </ParallaxLayer>
+
+                {/* LAYER 2: Character */}
+                {card.showCharacter && (
+                  <ParallaxLayer depth={0.3}>
+                    <div className="absolute inset-0 flex items-end justify-center">
+                      <ElainaCharacter className="w-[75%] h-auto drop-shadow-2xl" />
+                    </div>
+                  </ParallaxLayer>
+                )}
+
+                {/* LAYER 3: UI overlay (name, badge) — closest to viewer */}
+                <ParallaxLayer depth={0.8}>
+                  <div className="absolute inset-x-0 top-0 p-6 z-10">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="flex size-14 items-center justify-center rounded-2xl text-xl font-bold shadow-lg"
+                        style={{ background: "rgba(255,255,255,0.2)", backdropFilter: "blur(8px)" }}
+                      >
+                        {card.name.split(" ").map((w) => w[0]).join("").slice(0, 2)}
+                      </div>
+                      <div>
+                        <p className="text-xl font-bold tracking-tight drop-shadow-sm">
+                          {card.name}
+                        </p>
+                        <span
+                          className="inline-block mt-1 rounded-full px-3 py-0.5 text-xs font-medium"
+                          style={{ background: "rgba(255,255,255,0.2)", backdropFilter: "blur(4px)" }}
+                        >
+                          {card.role}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </ParallaxLayer>
+
+                {/* Bottom info */}
+                <div className="absolute inset-x-0 bottom-0 p-6 z-10">
+                  <div className="h-px bg-white/20 mb-3" />
+                  <p className="text-sm text-white/80 drop-shadow-sm">{card.subtitle}</p>
+                  <div className="mt-2 flex items-center gap-3 text-xs text-white/50">
+                    <span className="flex items-center gap-1">
+                      <Star className="size-3 fill-current" />
+                      Scholaris
+                    </span>
+                    <span>·</span>
+                    <span>3D Card</span>
+                  </div>
+                </div>
+
+                {/* Decorative corner glow */}
+                <div
+                  className="absolute -bottom-12 -right-12 size-40 rounded-full opacity-20 blur-3xl pointer-events-none"
+                  style={{ background: "radial-gradient(circle, white, transparent)" }}
+                  aria-hidden="true"
+                />
+              </div>
+            </ParallaxCard>
 
             {/* CSS Output */}
             <Card3D intensity={1} className="w-full max-w-sm mt-6 p-4 obsidian-sheen">
@@ -400,11 +442,10 @@ export default function StudioElaina() {
     ${gradient.via},
     ${gradient.to}
   );
-  border-radius: 1.25rem;
-  padding: 2rem;
+  border-radius: 1.5rem;
   color: white;
-  box-shadow:
-    0 20px 60px -12px ${gradient.from}66;
+  perspective: 1000px;
+  box-shadow: 0 20px 60px -12px ${gradient.from}66;
 }`}
               </pre>
             </Card3D>
@@ -412,7 +453,7 @@ export default function StudioElaina() {
         </div>
       </div>
 
-      {/* CSS animation keyframes (injected) */}
+      {/* Sparkle animation */}
       <style>{`
         @keyframes sparkle {
           0%, 100% { opacity: 0; transform: scale(0); }
