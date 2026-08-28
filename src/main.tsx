@@ -3,8 +3,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { RequireAuth } from "@/components/RequireAuth";
 import { CustomCursor } from "@/components/CustomCursor";
 import { VlyToolbar } from "../vly-toolbar-readonly.tsx";
-import { ConvexAuthProvider } from "@convex-dev/auth/react";
-import { ConvexReactClient } from "convex/react";
+import { LocalAuthProvider } from "@/hooks/use-local-auth";
 import React, { StrictMode, useEffect, lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router";
@@ -18,7 +17,10 @@ const Ujian = lazy(() => import("./pages/Ujian.tsx"));
 const Absensi = lazy(() => import("./pages/Absensi.tsx"));
 const BankSoal = lazy(() => import("./pages/BankSoal.tsx"));
 const Profil = lazy(() => import("./pages/Profil.tsx"));
+const Guru = lazy(() => import("./pages/Guru.tsx"));
+const Murid = lazy(() => import("./pages/Murid.tsx"));
 const UjianDetail = lazy(() => import("./pages/UjianDetail.tsx"));
+const StudioElaina = lazy(() => import("./pages/StudioElaina.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 // Simple loading fallback for route transitions
@@ -86,7 +88,7 @@ class RootErrorBoundary extends React.Component<
   }
 }
 
-const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
+
 
 
 
@@ -121,7 +123,7 @@ createRoot(document.getElementById("root")!).render(
       <ToolbarErrorBoundary>
         <VlyToolbar />
       </ToolbarErrorBoundary>
-      <ConvexAuthProvider client={convex}>
+      <LocalAuthProvider>
         <BrowserRouter>
           <RouteSyncer />
           <Suspense fallback={<RouteLoading />}>
@@ -164,10 +166,34 @@ createRoot(document.getElementById("root")!).render(
                 }
               />
               <Route
+                path="/guru"
+                element={
+                  <RequireAuth>
+                    <Guru />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/murid"
+                element={
+                  <RequireAuth>
+                    <Murid />
+                  </RequireAuth>
+                }
+              />
+              <Route
                 path="/bank-soal"
                 element={
                   <RequireAuth>
                     <BankSoal />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/studio-elaina"
+                element={
+                  <RequireAuth>
+                    <StudioElaina />
                   </RequireAuth>
                 }
               />
@@ -184,7 +210,7 @@ createRoot(document.getElementById("root")!).render(
           </Suspense>
         </BrowserRouter>
         <Toaster />
-      </ConvexAuthProvider>
+      </LocalAuthProvider>
     </RootErrorBoundary>
   </StrictMode>,
 );

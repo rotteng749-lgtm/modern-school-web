@@ -8,10 +8,12 @@ import {
   UserCircle,
   LogOut,
   GraduationCap,
+  Users,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { useAuth } from "@/hooks/use-auth";
+import { useLocalAuth } from "@/hooks/use-local-auth";
 import { cn } from "@/lib/utils";
 import {
   SidebarProvider,
@@ -31,13 +33,16 @@ const NAV_ITEMS = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
   { label: "Ujian / CBT", icon: ClipboardCheck, href: "/ujian" },
   { label: "Absensi", icon: FileQuestion, href: "/absensi" },
+  { label: "Guru", icon: Users, href: "/guru" },
+  { label: "Murid", icon: GraduationCap, href: "/murid" },
   { label: "Bank Soal", icon: Trophy, href: "/bank-soal" },
+  { label: "Studio Elaina", icon: Sparkles, href: "/studio-elaina" },
   { label: "Profil", icon: UserCircle, href: "/profil" },
 ] as const;
 
 export function DashboardShell({ children }: { children: ReactNode }) {
   const location = useLocation();
-  const { user, signOut } = useAuth();
+  const { user, signOut } = useLocalAuth();
 
   return (
     <SidebarProvider defaultOpen>
@@ -82,11 +87,11 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         <SidebarFooter>
           <div className="flex items-center gap-2 px-2 py-1.5">
             <div className="flex size-8 items-center justify-center rounded-full bg-primary/15 text-xs font-semibold text-primary">
-              {user?.name?.charAt(0)?.toUpperCase() ?? "A"}
+              {user?.name?.charAt(0)?.toUpperCase() ?? "U"}
             </div>
             <div className="flex-1 truncate">
-              <p className="text-sm font-medium truncate">{user?.name ?? "Admin"}</p>
-              <p className="text-xs text-muted-foreground truncate">{user?.email ?? "admin@scholaris.id"}</p>
+              <p className="text-sm font-medium truncate">{user?.name ?? "User"}</p>
+              <p className="text-xs text-muted-foreground truncate capitalize">{user?.role ?? "admin"}</p>
             </div>
             <Button
               variant="ghost"

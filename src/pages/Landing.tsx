@@ -16,7 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Card3D } from "@/components/Card3D";
-import { useAuth } from "@/hooks/use-auth";
+import { useLocalAuth } from "@/hooks/use-local-auth";
 
 /* ═══════════════════════════════════════════
    LANDING — Modern School Web
@@ -54,7 +54,7 @@ const CAPABILITIES = [
 ];
 
 export default function Landing() {
-  const { isAuthenticated } = useAuth();
+  const { user } = useLocalAuth();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => setMounted(true), []);
@@ -79,8 +79,8 @@ export default function Landing() {
           <div className="flex items-center gap-2">
             <ThemeToggle />
             <Button asChild size="sm" className="rounded-full px-4">
-              <Link to={isAuthenticated ? "/dashboard" : "/auth"}>
-                {isAuthenticated ? "Dashboard" : "Masuk"}
+              <Link to={user ? "/dashboard" : "/auth"}>
+                {user ? "Dashboard" : "Masuk"}
                 <ArrowRight className="size-3.5" />
               </Link>
             </Button>
