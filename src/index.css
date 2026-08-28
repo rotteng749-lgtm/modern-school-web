@@ -1,0 +1,265 @@
+/* DO NOT CHANGE */
+@import "tailwindcss";
+@import "tw-animate-css";
+@custom-variant dark (&:is(.dark *));
+
+/* DO NOT CHANGE */
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+/* ═══════════════════════════════════════════════
+   THEME: Anime Light (default) + Black Obsidian Dark
+   ═══════════════════════════════════════════════ */
+
+:root {
+  /* Anime Light — soft pastels, pink-violet accent, rounded & glowy */
+  --radius: 0.75rem;
+  --background: #faf5ff;
+  --foreground: #1e1533;
+  --card: #ffffff;
+  --card-foreground: #1e1533;
+  --popover: #ffffff;
+  --popover-foreground: #1e1533;
+  --primary: #a855f7;
+  --primary-foreground: #ffffff;
+  --secondary: #f3e8ff;
+  --secondary-foreground: #581c87;
+  --muted: #f3e8ff;
+  --muted-foreground: #7c6d94;
+  --accent: #c084fc;
+  --accent-foreground: #ffffff;
+  --destructive: #ef4444;
+  --border: #e9d5ff;
+  --input: #e9d5ff;
+  --ring: #c084fc;
+  --chart-1: #a855f7;
+  --chart-2: #6366f1;
+  --chart-3: #ec4899;
+  --chart-4: #f59e0b;
+  --chart-5: #10b981;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #1e1533;
+  --sidebar-primary: #a855f7;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f3e8ff;
+  --sidebar-accent-foreground: #581c87;
+  --sidebar-border: #e9d5ff;
+  --sidebar-ring: #c084fc;
+  /* Anime Light — extra tokens */
+  --glow: rgba(168, 85, 247, 0.15);
+  --glow-strong: rgba(168, 85, 247, 0.25);
+  --obsidian: #faf5ff;
+  --card-hover: linear-gradient(135deg, #fdf4ff 0%, #ede9fe 100%);
+}
+
+.dark {
+  /* Black Obsidian — deep noir with emerald accents */
+  --background: #080c14;
+  --foreground: #e8ecf4;
+  --card: #0f1523;
+  --card-foreground: #e8ecf4;
+  --popover: #0f1523;
+  --popover-foreground: #e8ecf4;
+  --primary: #10b981;
+  --primary-foreground: #022c22;
+  --secondary: #162032;
+  --secondary-foreground: #c9d1de;
+  --muted: #162032;
+  --muted-foreground: #6b7a90;
+  --accent: #34d399;
+  --accent-foreground: #022c22;
+  --destructive: #f87171;
+  --border: rgba(255, 255, 255, 0.06);
+  --input: rgba(255, 255, 255, 0.08);
+  --ring: #34d399;
+  --chart-1: #10b981;
+  --chart-2: #38bdf8;
+  --chart-3: #a78bfa;
+  --chart-4: #fbbf24;
+  --chart-5: #f472b6;
+  --sidebar: #0b1020;
+  --sidebar-foreground: #e8ecf4;
+  --sidebar-primary: #34d399;
+  --sidebar-primary-foreground: #022c22;
+  --sidebar-accent: #162032;
+  --sidebar-accent-foreground: #e8ecf4;
+  --sidebar-border: rgba(255, 255, 255, 0.06);
+  --sidebar-ring: #34d399;
+  /* Black Obsidian — extra tokens */
+  --glow: rgba(16, 185, 129, 0.1);
+  --glow-strong: rgba(16, 185, 129, 0.2);
+  --obsidian: #080c14;
+  --card-hover: linear-gradient(135deg, #0f1a2e 0%, #111c30 100%);
+}
+
+/* ═══════════════════════════════════════════════
+   CUSTOM CURSOR (desktop only, disabled on touch)
+   ═══════════════════════════════════════════════ */
+
+.cursor-dot,
+.cursor-ring {
+  pointer-events: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 99999;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  will-change: transform;
+}
+
+.cursor-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+}
+
+.cursor-ring {
+  width: 36px;
+  height: 36px;
+  border: 1.5px solid var(--accent);
+  opacity: 0.5;
+  transition: width 0.2s ease, height 0.2s ease, opacity 0.2s ease;
+}
+
+.cursor-ring.hovering {
+  width: 52px;
+  height: 52px;
+  opacity: 0.8;
+  border-color: var(--primary);
+}
+
+/* Hide custom cursor on touch devices */
+@media (pointer: coarse) {
+  .cursor-dot, .cursor-ring { display: none !important; }
+  body { cursor: auto !important; }
+}
+
+/* ═══════════════════════════════════════════════
+   3D CARD — CSS perspective tilt on hover
+   ═══════════════════════════════════════════════ */
+
+.card-3d-wrapper {
+  perspective: 800px;
+}
+
+.card-3d {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .card-3d:hover {
+    box-shadow: 0 20px 40px -12px var(--glow-strong),
+                0 0 0 1px var(--glow);
+  }
+}
+
+/* Only apply tilt on non-touch devices with hover support */
+@media (hover: hover) and (pointer: fine) {
+  .card-3d.tilt-active {
+    transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
+  }
+}
+
+/* Mobile: just scale, no tilt */
+@media (pointer: coarse) {
+  .card-3d:active {
+    transform: scale(0.98) !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   OBSIDIAN DARK THEME EXTRAS
+   ═══════════════════════════════════════════════ */
+
+.dark .obsidian-glow {
+  box-shadow: 0 0 60px -20px var(--glow-strong),
+              0 0 120px -40px var(--glow);
+}
+
+.dark .obsidian-border {
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+/* Subtle obsidian sheen on cards in dark mode */
+.dark .obsidian-sheen {
+  background: linear-gradient(
+    135deg,
+    rgba(16, 185, 129, 0.03) 0%,
+    rgba(16, 185, 129, 0) 50%,
+    rgba(56, 189, 248, 0.02) 100%
+  );
+}
+
+/* ═══════════════════════════════════════════════
+   ANIME LIGHT EXTRAS
+   ═══════════════════════════════════════════════ */
+
+.anime-glow {
+  box-shadow: 0 4px 24px -4px var(--glow),
+              0 0 0 1px var(--glow);
+}
+
+.anime-card-bg {
+  background: linear-gradient(135deg, #fdf4ff 0%, #ede9fe 100%);
+}
+
+/* ═══════════════════════════════════════════════
+   REDUCED MOTION
+   ═══════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  .card-3d { transition: none !important; }
+  .cursor-dot, .cursor-ring { display: none !important; }
+  * { animation-duration: 0.01ms !important; }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  button:not([disabled]),
+  [role="button"]:not([disabled]) {
+    cursor: pointer;
+  }
+}
