@@ -4,6 +4,7 @@ import { RequireAuth } from "@/components/RequireAuth";
 import { CustomCursor } from "@/components/CustomCursor";
 import { VlyToolbar } from "../vly-toolbar-readonly.tsx";
 import { LocalAuthProvider } from "@/hooks/use-local-auth";
+import { ConvexWrapper } from "@/components/ConvexWrapper";
 import React, { StrictMode, useEffect, lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router";
@@ -123,6 +124,7 @@ createRoot(document.getElementById("root")!).render(
       <ToolbarErrorBoundary>
         <VlyToolbar />
       </ToolbarErrorBoundary>
+      <ConvexWrapper>
       <LocalAuthProvider>
         <BrowserRouter>
           <RouteSyncer />
@@ -211,6 +213,7 @@ createRoot(document.getElementById("root")!).render(
         </BrowserRouter>
         <Toaster />
       </LocalAuthProvider>
+      </ConvexWrapper>
     </RootErrorBoundary>
   </StrictMode>,
 );
