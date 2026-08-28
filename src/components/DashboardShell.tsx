@@ -48,7 +48,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             <div className="flex size-9 items-center justify-center rounded-lg bg-primary/15 text-primary">
               <GraduationCap className="size-5" />
             </div>
-            <span className="text-lg font-bold tracking-tight">Scholaris</span>
+            <span className="text-lg font-bold tracking-tight">MSW</span>
           </Link>
         </SidebarHeader>
 

@@ -6,7 +6,7 @@
   <link rel="icon" type="image/svg+xml" href="/logo.svg" />
   <link rel="manifest" href="/manifest.webmanifest" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Scholaris — Sistem Manajemen Sekolah</title>
+  <title>Modern School Web</title>
 </head>
 
 
@@ -14,7 +14,7 @@
   <script>
     /* Prevent flash of wrong theme on load */
     (function() {
-      var t = localStorage.getItem('scholaris-theme');
+      var t = localStorage.getItem('msw-theme');
       if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
       document.documentElement.setAttribute('data-theme', t);
       if (t === 'dark') document.documentElement.classList.add('dark');

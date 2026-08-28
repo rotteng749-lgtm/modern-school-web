@@ -3,19 +3,18 @@ import {
   Plus,
   Search,
   Filter,
-  Hash,
   Tag,
-  BarChart,
+  Upload,
+  FileText,
 } from "lucide-react";
 import { Card3D } from "@/components/Card3D";
 import { DashboardShell } from "@/components/DashboardShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { EmptyState } from "@/components/EmptyState";
 
 /* ═══════════════════════════════════════════
-   BANK SOAL MODULE
+   BANK SOAL — Modern School Web
    ═══════════════════════════════════════════ */
 
 const KATEGORIES = [
@@ -29,6 +28,7 @@ const KATEGORIES = [
 
 const RECENT_SOAL = [
   {
+    id: 1,
     question: "Tentukan nilai x dari persamaan 2x² − 8x + 6 = 0",
     subject: "Matematika",
     type: "Pilihan Ganda",
@@ -36,14 +36,16 @@ const RECENT_SOAL = [
     created: "2 hari lalu",
   },
   {
-    question: "Analisislah teks argumentasi berikut dan tentukan thesis statement-nya...",
+    id: 2,
+    question: "Analisis teks argumentasi berikut dan tentukan thesis statement-nya",
     subject: "B. Indonesia",
     type: "Uraian",
     difficulty: "Sulit",
     created: "3 hari lalu",
   },
   {
-    question: "Sebutkan 3 hukum Newton dan berikan contoh penerapannya!",
+    id: 3,
+    question: "Sebutkan 3 hukum Newton dan berikan contoh penerapannya",
     subject: "Fisika",
     type: "Uraian",
     difficulty: "Sedang",
@@ -66,20 +68,26 @@ export default function BankSoal() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Bank Soal</h1>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              Kelola koleksi soal ujian
+              Koleksi soal terstruktur — 486 total
             </p>
           </div>
-          <Button size="sm" className="rounded-full">
-            <Plus className="size-4" />
-            Tambah Soal
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="rounded-full">
+              <Upload className="size-3.5" />
+              Import
+            </Button>
+            <Button size="sm" className="rounded-full">
+              <Plus className="size-4" />
+              Tambah Soal
+            </Button>
+          </div>
         </div>
 
         {/* Search + Filter */}
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
-            <Input placeholder="Cari soal..." className="pl-9" />
+            <Input placeholder="Cari soal berdasarkan kata kunci, mata pelajaran..." className="pl-9" />
           </div>
           <Button variant="outline" size="icon" className="shrink-0">
             <Filter className="size-4" />
@@ -88,7 +96,7 @@ export default function BankSoal() {
 
         {/* Category cards */}
         <div>
-          <h2 className="mb-3 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+          <h2 className="mb-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             Per Kategori
           </h2>
           <div className="grid gap-3 grid-cols-2 sm:grid-cols-3">
@@ -110,13 +118,16 @@ export default function BankSoal() {
 
         {/* Recent soal */}
         <div>
-          <h2 className="mb-3 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+          <h2 className="mb-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             Soal Terbaru
           </h2>
           <Card3D intensity={2} className="overflow-hidden obsidian-sheen">
             <div className="divide-y">
-              {RECENT_SOAL.map((soal, i) => (
-                <div key={i} className="px-5 py-4 hover:bg-accent/30 transition-colors">
+              {RECENT_SOAL.map((soal) => (
+                <div
+                  key={soal.id}
+                  className="px-5 py-4 hover:bg-accent/30 transition-colors cursor-pointer"
+                >
                   <p className="text-sm font-medium leading-snug line-clamp-2">
                     {soal.question}
                   </p>

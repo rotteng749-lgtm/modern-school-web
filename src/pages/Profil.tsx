@@ -7,22 +7,22 @@ import {
   Users,
   Building,
   Edit,
+  ExternalLink,
 } from "lucide-react";
 import { Card3D } from "@/components/Card3D";
 import { DashboardShell } from "@/components/DashboardShell";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 
 /* ═══════════════════════════════════════════
-   PROFIL SEKOLAH
+   PROFIL — Modern School Web
    ═══════════════════════════════════════════ */
 
 const INFO_ITEMS = [
-  { icon: Building, label: "Nama Sekolah", value: "SMA Negeri 1 Scholaris" },
+  { icon: Building, label: "Nama Institusi", value: "SMA Negeri 1 Scholaris" },
   { icon: MapPin, label: "Alamat", value: "Jl. Pendidikan No. 123, Jakarta Selatan" },
   { icon: Phone, label: "Telepon", value: "(021) 555-0123" },
   { icon: Mail, label: "Email", value: "info@sma1scholaris.id" },
-  { icon: Globe, label: "Website", value: "www.sma1scholaris.id" },
+  { icon: Globe, label: "Website", value: "www.sma1scholaris.id", link: true },
 ];
 
 const STATS = [
@@ -38,18 +38,18 @@ export default function Profil() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Profil Sekolah</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Profil Institusi</h1>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              Informasi dasar sekolah
+              Informasi dasar dan konfigurasi sekolah
             </p>
           </div>
           <Button variant="outline" size="sm" className="rounded-full">
             <Edit className="size-3.5" />
-            Edit Profil
+            Edit
           </Button>
         </div>
 
-        {/* School identity card */}
+        {/* Identity card */}
         <Card3D intensity={3} className="p-6 obsidian-sheen">
           <div className="flex items-center gap-4">
             <div className="flex size-16 items-center justify-center rounded-2xl bg-primary/12 text-primary">
@@ -58,7 +58,7 @@ export default function Profil() {
             <div>
               <h2 className="text-xl font-bold">SMA Negeri 1 Scholaris</h2>
               <p className="text-sm text-muted-foreground">
-                Sekolah Menengah Atas Negeri — NPSN: 20201234
+                NPSN: 20201234 · Akreditasi A
               </p>
             </div>
           </div>
@@ -87,7 +87,12 @@ export default function Profil() {
                   <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">
                     {item.label}
                   </p>
-                  <p className="mt-0.5 text-sm font-medium truncate">{item.value}</p>
+                  <div className="mt-0.5 flex items-center gap-1.5">
+                    <p className="text-sm font-medium truncate">{item.value}</p>
+                    {item.link && (
+                      <ExternalLink className="size-3 text-muted-foreground shrink-0" />
+                    )}
+                  </div>
                 </div>
               </div>
             ))}

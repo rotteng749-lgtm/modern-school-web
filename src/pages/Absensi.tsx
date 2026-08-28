@@ -6,14 +6,17 @@ import {
   Clock,
   Users,
   Download,
+  Search,
+  Filter,
 } from "lucide-react";
 import { Card3D } from "@/components/Card3D";
 import { DashboardShell } from "@/components/DashboardShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 /* ═══════════════════════════════════════════
-   ABSENSI MODULE
+   ABSENSI — Modern School Web
    ═══════════════════════════════════════════ */
 
 const ABSENSI_DATA = [
@@ -57,15 +60,26 @@ export default function Absensi() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Absensi</h1>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              Rekap kehadiran siswa — {selectedDate}
+              Rekap kehadiran — {selectedDate}
             </p>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" className="rounded-full">
               <Download className="size-3.5" />
-              Export
+              Export CSV
             </Button>
           </div>
+        </div>
+
+        {/* Search */}
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
+            <Input placeholder="Cari siswa berdasarkan nama atau kelas..." className="pl-9" />
+          </div>
+          <Button variant="outline" size="icon" className="shrink-0">
+            <Filter className="size-4" />
+          </Button>
         </div>
 
         {/* Stats */}
@@ -86,7 +100,7 @@ export default function Absensi() {
 
         {/* Attendance list */}
         <div>
-          <h2 className="mb-3 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+          <h2 className="mb-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             Daftar Kehadiran
           </h2>
           <Card3D intensity={2} className="overflow-hidden obsidian-sheen">

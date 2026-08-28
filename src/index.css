@@ -47,84 +47,84 @@
    ═══════════════════════════════════════════════ */
 
 :root {
-  /* Anime Light — soft pastels, pink-violet accent, rounded & glowy */
+  /* Anime Light — soft, clean, minimal */
   --radius: 0.75rem;
-  --background: #faf5ff;
-  --foreground: #1e1533;
+  --background: #f8f5ff;
+  --foreground: #181226;
   --card: #ffffff;
-  --card-foreground: #1e1533;
+  --card-foreground: #181226;
   --popover: #ffffff;
-  --popover-foreground: #1e1533;
-  --primary: #a855f7;
+  --popover-foreground: #181226;
+  --primary: #8b5cf6;
   --primary-foreground: #ffffff;
-  --secondary: #f3e8ff;
-  --secondary-foreground: #581c87;
-  --muted: #f3e8ff;
-  --muted-foreground: #7c6d94;
-  --accent: #c084fc;
+  --secondary: #f1ecfc;
+  --secondary-foreground: #4c1d95;
+  --muted: #f1ecfc;
+  --muted-foreground: #6b5f8a;
+  --accent: #a78bfa;
   --accent-foreground: #ffffff;
   --destructive: #ef4444;
-  --border: #e9d5ff;
-  --input: #e9d5ff;
-  --ring: #c084fc;
-  --chart-1: #a855f7;
+  --border: #e4d9f7;
+  --input: #e4d9f7;
+  --ring: #a78bfa;
+  --chart-1: #8b5cf6;
   --chart-2: #6366f1;
   --chart-3: #ec4899;
   --chart-4: #f59e0b;
   --chart-5: #10b981;
   --sidebar: #ffffff;
-  --sidebar-foreground: #1e1533;
-  --sidebar-primary: #a855f7;
+  --sidebar-foreground: #181226;
+  --sidebar-primary: #8b5cf6;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f3e8ff;
-  --sidebar-accent-foreground: #581c87;
-  --sidebar-border: #e9d5ff;
-  --sidebar-ring: #c084fc;
-  /* Anime Light — extra tokens */
-  --glow: rgba(168, 85, 247, 0.15);
-  --glow-strong: rgba(168, 85, 247, 0.25);
-  --obsidian: #faf5ff;
-  --card-hover: linear-gradient(135deg, #fdf4ff 0%, #ede9fe 100%);
+  --sidebar-accent: #f1ecfc;
+  --sidebar-accent-foreground: #4c1d95;
+  --sidebar-border: #e4d9f7;
+  --sidebar-ring: #a78bfa;
+  /* Light — extra tokens */
+  --glow: rgba(139, 92, 246, 0.12);
+  --glow-strong: rgba(139, 92, 246, 0.2);
+  --obsidian: #f8f5ff;
+  --card-hover: linear-gradient(135deg, #faf5ff 0%, #ede9fe 100%);
 }
 
 .dark {
-  /* Black Obsidian — deep noir with emerald accents */
-  --background: #080c14;
-  --foreground: #e8ecf4;
-  --card: #0f1523;
-  --card-foreground: #e8ecf4;
-  --popover: #0f1523;
-  --popover-foreground: #e8ecf4;
+  /* Black Obsidian — deep noir, emerald accent, premium feel */
+  --background: #060a12;
+  --foreground: #e2e8f0;
+  --card: #0d1321;
+  --card-foreground: #e2e8f0;
+  --popover: #0d1321;
+  --popover-foreground: #e2e8f0;
   --primary: #10b981;
   --primary-foreground: #022c22;
-  --secondary: #162032;
-  --secondary-foreground: #c9d1de;
-  --muted: #162032;
-  --muted-foreground: #6b7a90;
+  --secondary: #131d2e;
+  --secondary-foreground: #b8c4d6;
+  --muted: #131d2e;
+  --muted-foreground: #5a6a80;
   --accent: #34d399;
   --accent-foreground: #022c22;
   --destructive: #f87171;
-  --border: rgba(255, 255, 255, 0.06);
-  --input: rgba(255, 255, 255, 0.08);
+  --border: rgba(255, 255, 255, 0.05);
+  --input: rgba(255, 255, 255, 0.07);
   --ring: #34d399;
   --chart-1: #10b981;
   --chart-2: #38bdf8;
   --chart-3: #a78bfa;
   --chart-4: #fbbf24;
   --chart-5: #f472b6;
-  --sidebar: #0b1020;
-  --sidebar-foreground: #e8ecf4;
+  --sidebar: #090e1a;
+  --sidebar-foreground: #e2e8f0;
   --sidebar-primary: #34d399;
   --sidebar-primary-foreground: #022c22;
-  --sidebar-accent: #162032;
-  --sidebar-accent-foreground: #e8ecf4;
-  --sidebar-border: rgba(255, 255, 255, 0.06);
+  --sidebar-accent: #131d2e;
+  --sidebar-accent-foreground: #e2e8f0;
+  --sidebar-border: rgba(255, 255, 255, 0.05);
   --sidebar-ring: #34d399;
-  /* Black Obsidian — extra tokens */
-  --glow: rgba(16, 185, 129, 0.1);
-  --glow-strong: rgba(16, 185, 129, 0.2);
-  --obsidian: #080c14;
-  --card-hover: linear-gradient(135deg, #0f1a2e 0%, #111c30 100%);
+  /* Dark — extra tokens */
+  --glow: rgba(16, 185, 129, 0.08);
+  --glow-strong: rgba(16, 185, 129, 0.16);
+  --obsidian: #060a12;
+  --card-hover: linear-gradient(135deg, #0d1528 0%, #0f1830 100%);
 }
 
 /* ═══════════════════════════════════════════════
@@ -196,6 +196,15 @@
   .card-3d.tilt-active {
     transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
   }
+}
+
+/* Premium dark card shadow */
+.dark .card-3d {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+.dark .card-3d:hover {
+  box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(16, 185, 129, 0.08);
 }
 
 /* Mobile: just scale, no tilt */

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 
 /** Reads the current theme from <html> or localStorage. */
 function getTheme(): "dark" | "light" {
-  const stored = localStorage.getItem("scholaris-theme");
+  const stored = localStorage.getItem("msw-theme");
   if (stored === "light" || stored === "dark") return stored;
   // Respect system preference, but default to dark (obsidian)
   if (window.matchMedia?.("(prefers-color-scheme: light)").matches) return "light";
@@ -15,7 +15,7 @@ function getTheme(): "dark" | "light" {
 function applyTheme(theme: "dark" | "light") {
   document.documentElement.setAttribute("data-theme", theme);
   document.documentElement.classList.toggle("dark", theme === "dark");
-  localStorage.setItem("scholaris-theme", theme);
+  localStorage.setItem("msw-theme", theme);
 }
 
 export function ThemeToggle({ className }: { className?: string }) {

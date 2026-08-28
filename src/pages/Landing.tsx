@@ -9,8 +9,9 @@ import {
   Users,
   ClipboardCheck,
   BookOpen,
-  Star,
-  ChevronRight,
+  Terminal,
+  Lock,
+  Activity,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -18,38 +19,38 @@ import { Card3D } from "@/components/Card3D";
 import { useAuth } from "@/hooks/use-auth";
 
 /* ═══════════════════════════════════════════
-   LANDING PAGE — Scholaris
-   Anime light / Obsidian dark, CTA → /auth
+   LANDING — Modern School Web
+   Premium, serious, technical, minimal
    ═══════════════════════════════════════════ */
 
 const FEATURES = [
   {
     icon: ClipboardCheck,
-    title: "CBT & Ujian Online",
-    desc: "Ujian berbasis komputer yang aman, cepat, dan anti kecurangan.",
+    title: "CBT & Ujian",
+    desc: "Ujian berbasis komputer — terjadwal, terukur, dan terintegrasi penuh.",
   },
   {
     icon: Users,
-    title: "Absensi Digital",
-    desc: "Catat kehadiran siswa dan guru secara real-time.",
+    title: "Absensi",
+    desc: "Rekap kehadiran real-time untuk siswa dan tenaga pengajar.",
   },
   {
     icon: BookOpen,
     title: "Bank Soal",
-    desc: "Kelola ribuan soal dengan mudah — import, export, kategori.",
+    desc: "Pengelolaan soal terstruktur — import, ekspor, dan kategorisasi otomatis.",
   },
   {
     icon: BarChart3,
     title: "Dashboard Analitik",
-    desc: "Visualisasi performa siswa dan kelas dalam satu tampilan.",
+    desc: "Visualisasi data kinerja kelas dan individu dalam satu panel.",
   },
 ];
 
-const STATS = [
-  { value: "50+", label: "Sekolah Aktif" },
-  { value: "12K+", label: "Siswa Terdaftar" },
-  { value: "100K+", label: "Ujian Tercatat" },
-  { value: "99.9%", label: "Uptime Server" },
+const CAPABILITIES = [
+  { icon: Terminal, text: "API-ready architecture" },
+  { icon: Lock, text: "Autentikasi berlapis" },
+  { icon: Activity, text: "Monitoring real-time" },
+  { icon: Shield, text: "Audit trail lengkap" },
 ];
 
 export default function Landing() {
@@ -69,10 +70,10 @@ export default function Landing() {
       >
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <Link to="/" className="flex items-center gap-2.5">
-            <div className="flex size-9 items-center justify-center rounded-xl bg-primary/15 text-primary shadow-sm">
+            <div className="flex size-9 items-center justify-center rounded-xl bg-primary/15 text-primary">
               <GraduationCap className="size-5" />
             </div>
-            <span className="text-xl font-bold tracking-tight">Scholaris</span>
+            <span className="text-xl font-bold tracking-tight">MSW</span>
           </Link>
 
           <div className="flex items-center gap-2">
@@ -89,66 +90,65 @@ export default function Landing() {
 
       {/* ── HERO ── */}
       <section className="relative">
-        {/* Decorative gradient blobs */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
           <div className="absolute -top-40 left-1/2 -translate-x-1/2 h-[500px] w-[700px] rounded-full bg-primary/8 blur-3xl" />
-          <div className="absolute top-20 right-0 h-[300px] w-[300px] rounded-full bg-accent/6 blur-3xl" />
         </div>
 
-        <div className="relative mx-auto max-w-6xl px-4 sm:px-6 pt-20 pb-24 sm:pt-28 sm:pb-32 text-center">
+        <div className="relative mx-auto max-w-6xl px-4 sm:px-6 pt-24 pb-28 sm:pt-32 sm:pb-36 text-center">
           <motion.div
             initial={{ y: 30, opacity: 0 }}
             animate={mounted ? { y: 0, opacity: 1 } : {}}
             transition={{ duration: 0.5, delay: 0.1 }}
           >
-            {/* Badge */}
             <div className="mb-6 inline-flex items-center gap-1.5 rounded-full border bg-card/80 px-3.5 py-1 text-xs font-medium text-muted-foreground backdrop-blur-sm">
-              <Star className="size-3 text-primary" />
-              Sistem Manajemen Sekolah Modern
+              <Terminal className="size-3 text-primary" />
+              School Management System
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.1]">
-              Kelola Sekolah
+              Modern School
               <br />
-              <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
-                Lebih Cerdas
-              </span>
+              <span className="text-muted-foreground">Web</span>
             </h1>
 
-            <p className="mx-auto mt-5 max-w-xl text-base sm:text-lg text-muted-foreground leading-relaxed">
-              Platform terpadu untuk ujian CBT, absensi digital, bank soal, dan
-              analitik — dirancang untuk sekolah &amp; pesantren Indonesia.
+            <p className="mx-auto mt-5 max-w-lg text-base sm:text-lg text-muted-foreground leading-relaxed">
+              Platform terpusat untuk ujian CBT, absensi digital, dan pengelolaan
+              data sekolah. Dibangun untuk performa dan keandalan.
             </p>
 
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Button asChild size="lg" className="rounded-full px-7 text-sm font-semibold shadow-lg shadow-primary/20">
+              <Button
+                asChild
+                size="lg"
+                className="rounded-full px-7 text-sm font-semibold shadow-lg shadow-primary/20"
+              >
                 <Link to="/auth">
-                  Mulai Sekarang
+                  Mulai
                   <ArrowRight className="size-4" />
                 </Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="rounded-full px-7 text-sm font-semibold">
-                <a href="#fitur">
-                  Lihat Fitur
-                  <ChevronRight className="size-4" />
-                </a>
+              <Button
+                asChild
+                variant="outline"
+                size="lg"
+                className="rounded-full px-7 text-sm font-semibold"
+              >
+                <a href="#fitur">Lihat Fitur</a>
               </Button>
             </div>
-          </motion.div>
 
-          {/* Stats row */}
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={mounted ? { y: 0, opacity: 1 } : {}}
-            transition={{ duration: 0.5, delay: 0.35 }}
-            className="mt-16 grid grid-cols-2 sm:grid-cols-4 gap-6 max-w-2xl mx-auto"
-          >
-            {STATS.map((s) => (
-              <div key={s.label} className="text-center">
-                <p className="text-2xl sm:text-3xl font-extrabold text-primary">{s.value}</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">{s.label}</p>
-              </div>
-            ))}
+            {/* Capability chips */}
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+              {CAPABILITIES.map((c) => (
+                <span
+                  key={c.text}
+                  className="inline-flex items-center gap-1.5 rounded-full border bg-card/60 px-3 py-1 text-xs text-muted-foreground"
+                >
+                  <c.icon className="size-3" />
+                  {c.text}
+                </span>
+              ))}
+            </div>
           </motion.div>
         </div>
       </section>
@@ -163,15 +163,11 @@ export default function Landing() {
             transition={{ duration: 0.5 }}
             className="text-center mb-12"
           >
-            <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border bg-card px-3 py-1 text-xs font-medium text-muted-foreground">
-              <Shield className="size-3 text-primary" />
-              Fitur Utama
-            </div>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
-              Semua yang Dibutuhkan Sekolah
+              Modul Inti
             </h2>
-            <p className="mt-3 text-muted-foreground max-w-lg mx-auto">
-              Satu platform, semua kebutuhan administrasi &amp; akademik terpenuhi.
+            <p className="mt-3 text-muted-foreground max-w-md mx-auto">
+              Setiap modul dirancang untuk alur kerja yang cepat dan terukur.
             </p>
           </motion.div>
 
@@ -209,14 +205,18 @@ export default function Landing() {
             transition={{ duration: 0.5 }}
           >
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
-              Siap Memulai?
+              Siap Digunakan
             </h2>
             <p className="mt-3 text-muted-foreground max-w-md mx-auto">
-              Daftar sekarang dan kelola sekolah dengan lebih efisien.
+              Masuk untuk mulai mengelola ujian, absensi, dan data sekolah.
             </p>
-            <Button asChild size="lg" className="mt-7 rounded-full px-8 text-sm font-semibold shadow-lg shadow-primary/20">
+            <Button
+              asChild
+              size="lg"
+              className="mt-7 rounded-full px-8 text-sm font-semibold shadow-lg shadow-primary/20"
+            >
               <Link to="/auth">
-                Masuk / Daftar
+                Masuk
                 <ArrowRight className="size-4" />
               </Link>
             </Button>
@@ -229,10 +229,10 @@ export default function Landing() {
         <div className="mx-auto max-w-6xl px-4 sm:px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
           <div className="flex items-center gap-2">
             <GraduationCap className="size-4 text-primary" />
-            <span className="font-medium">Scholaris</span>
+            <span className="font-medium">Modern School Web</span>
             <span>© {new Date().getFullYear()}</span>
           </div>
-          <p>Sistem Manajemen Sekolah — CBT, Absensi, Bank Soal</p>
+          <p>CBT · Absensi · Bank Soal · Analitik</p>
         </div>
       </footer>
     </div>

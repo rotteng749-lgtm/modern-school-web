@@ -18,6 +18,7 @@ const Ujian = lazy(() => import("./pages/Ujian.tsx"));
 const Absensi = lazy(() => import("./pages/Absensi.tsx"));
 const BankSoal = lazy(() => import("./pages/BankSoal.tsx"));
 const Profil = lazy(() => import("./pages/Profil.tsx"));
+const UjianDetail = lazy(() => import("./pages/UjianDetail.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 // Simple loading fallback for route transitions
@@ -143,6 +144,14 @@ createRoot(document.getElementById("root")!).render(
                 element={
                   <RequireAuth>
                     <Ujian />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/ujian/:id"
+                element={
+                  <RequireAuth>
+                    <UjianDetail />
                   </RequireAuth>
                 }
               />
