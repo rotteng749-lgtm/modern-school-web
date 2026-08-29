@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { toPng } from "html-to-image";
 import {
   Sparkles,
@@ -11,6 +11,7 @@ import {
   Download,
   Palette,
   User,
+  KeyRound,
 } from "lucide-react";
 import { Card3D } from "@/components/Card3D";
 import { DashboardShell } from "@/components/DashboardShell";
@@ -55,6 +56,9 @@ interface CardData {
   name: string;
   badge: string;
   subtitle: string;
+  username: string;
+  password: string;
+  showCredentials: boolean;
   gradientIdx: number;
   showStars: boolean;
   showSparkles: boolean;
@@ -66,6 +70,9 @@ const DEFAULT: CardData = {
   name: "Elaina Flonesia",
   badge: "Siswa",
   subtitle: "Kelas 6 · MI Mambaul Hasan",
+  username: "elaina001",
+  password: "Elaina@2026",
+  showCredentials: true,
   gradientIdx: 0,
   showStars: true,
   showSparkles: true,
@@ -131,7 +138,7 @@ export default function StudioElaina() {
   const [personSearch, setPersonSearch] = useState("");
   const [selectedId, setSelectedId] = useState("");
 
-  useState(() => {
+  useEffect(() => {
     try {
       const m = localStorage.getItem("msw-murid");
       if (m) setMuridList(JSON.parse(m));
@@ -140,7 +147,7 @@ export default function StudioElaina() {
       const g = localStorage.getItem("msw-guru");
       if (g) setGuruList(JSON.parse(g));
     } catch {}
-  });
+  }, []);
 
   const gradient = GRADIENTS[card.gradientIdx];
 
@@ -148,10 +155,18 @@ export default function StudioElaina() {
     setSelectedId(id);
     if (type === "siswa") {
       const s = muridList.find((m) => m.id === id);
-      if (s) setCard({ ...card, name: s.name, badge: "Siswa", subtitle: `${s.className} · NISN ${s.nisn}` });
+      if (s) setCard({
+        ...card,
+        name: s.name,
+        badge: "Siswa",
+        subtitle: `${s.className} · NISN ${s.nisn}`,
+        username: s.username || "",
+        password: s.password || "",
+        showCredentials: !!(s.username && s.password),
+      });
     } else {
       const g = guruList.find((gr) => gr.id === id);
-      if (g) setCard({ ...card, name: g.name, badge: "Guru", subtitle: g.subject });
+      if (g) setCard({ ...card, name: g.name, badge: "Guru", subtitle: g.subject, showCredentials: false });
     }
   };
 
@@ -337,6 +352,26 @@ export default function StudioElaina() {
                 Efek & 3D
               </h3>
               <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Username & Password</Label>
+                  <Button variant={card.showCredentials ? "default" : "outline"} size="sm" className="h-7 text-xs"
+                    onClick={() => setCard({ ...card, showCredentials: !card.showCredentials })}
+                  >
+                    {card.showCredentials ? "Aktif" : "Mati"}
+                  </Button>
+                </div>
+                {card.showCredentials && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-[10px]">Username</Label>
+                      <Input className="h-7 text-xs" value={card.username} onChange={(e) => setCard({ ...card, username: e.target.value })} placeholder="username" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px]">Password</Label>
+                      <Input className="h-7 text-xs" value={card.password} onChange={(e) => setCard({ ...card, password: e.target.value })} placeholder="password" />
+                    </div>
+                  </div>
+                )}
                 {[
                   { label: "Sparkle Partikel", key: "showSparkles" as const },
                   { label: "Dekorasi Bintang", key: "showStars" as const },
@@ -387,34 +422,37 @@ export default function StudioElaina() {
                 style={{
                   background: `linear-gradient(135deg, ${gradient.from}, ${gradient.via}, ${gradient.to})`,
                   boxShadow: `0 20px 60px -12px ${gradient.from}66, 0 0 0 1px ${gradient.from}22`,
-                  aspectRatio: "3/4",
+                  aspectRatio: card.showCredentials ? "3/4" : "4/5",
+                  minHeight: "480px",
                 }}
               >
-                {/* Layer 0 */}
+                {/* Layer 0 — background gradient overlay */}
                 <ParallaxLayer depth={-0.5}>
                   <div className="absolute inset-0" aria-hidden="true">
                     <div className="absolute inset-0 opacity-30" style={{ background: "radial-gradient(circle at 30% 20%, rgba(255,255,255,0.2), transparent 60%)" }} />
                   </div>
                 </ParallaxLayer>
 
-                {/* Layer 1 */}
+                {/* Layer 1 — stars & sparkles */}
                 <ParallaxLayer depth={-0.2}>
                   {card.showStars && <Stars_ count={10} />}
                   {card.showSparkles && <Sparkles_ count={20} />}
                 </ParallaxLayer>
 
-                {/* Layer 2 */}
+                {/* Layer 2 — character illustration */}
                 {card.showCharacter && (
                   <ParallaxLayer depth={0.3}>
-                    <div className="absolute inset-0 flex items-end justify-center">
-                      <ElainaCharacter className="w-[75%] h-auto drop-shadow-2xl" />
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="relative w-[60%]" style={{ marginTop: "60px" }}>
+                        <ElainaCharacter className="w-full h-auto drop-shadow-2xl" />
+                      </div>
                     </div>
                   </ParallaxLayer>
                 )}
 
-                {/* Layer 3 */}
+                {/* Layer 3 — text & credentials overlay */}
                 <ParallaxLayer depth={0.8}>
-                  {/* Top */}
+                  {/* Top: name + badge */}
                   <div className="absolute inset-x-0 top-0 p-6 z-10">
                     <div className="flex items-center gap-3">
                       <div className="flex size-14 items-center justify-center rounded-2xl text-xl font-bold shadow-lg"
@@ -433,17 +471,30 @@ export default function StudioElaina() {
                     </div>
                   </div>
 
-                  {/* Bottom */}
-                  <div className="absolute inset-x-0 bottom-0 p-6 z-10">
+                  {/* Bottom: credentials + subtitle + school name */}
+                  <div className="absolute inset-x-0 bottom-0 p-5 z-10">
                     <div className="h-px bg-white/20 mb-3" />
+                    {card.showCredentials && card.username && (
+                      <div className="rounded-xl p-3 mb-3" style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(6px)" }}>
+                        <div className="flex items-center gap-1.5 text-[10px] text-white/60 mb-2 uppercase tracking-wider font-medium">
+                          <KeyRound className="size-2.5" /> Akun Login
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <User className="size-3 text-white/50" />
+                            <span className="text-sm font-mono font-medium">{card.username}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <KeyRound className="size-3 text-white/50" />
+                            <span className="text-sm font-mono font-medium">{card.password}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     <p className="text-sm text-white/80 drop-shadow-sm">{card.subtitle}</p>
-                    <div className="mt-2 flex items-center gap-3 text-xs text-white/50">
-                      <span className="flex items-center gap-1">
-                        <Star className="size-3 fill-current" />
-                        Yayasan Mambaul Hasan
-                      </span>
-                      <span>·</span>
-                      <span>3D Card</span>
+                    <div className="mt-1.5 flex items-center gap-2 text-[11px] text-white/50">
+                      <Star className="size-3 fill-current" />
+                      <span>Yayasan Mambaul Hasan</span>
                     </div>
                   </div>
                 </ParallaxLayer>

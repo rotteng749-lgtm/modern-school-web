@@ -963,19 +963,123 @@ export default function BankSoal() {
             <Button
               size="sm"
               onClick={() => {
-                const generated: SoalItem[] = Array.from({ length: genCount }, (_, i) => ({
-                  id: (Date.now() + i).toString(),
-                  question: `[Soal ${i + 1}] Tuliskan pertanyaan di sini...`,
-                  options: genType === "Pilihan Ganda" ? ["Pilihan A", "Pilihan B", "Pilihan C", "Pilihan D"] : [],
-                  answer: "",
-                  subject: genSubject,
-                  type: genType,
-                  difficulty: genDifficulty,
-                  createdAt: new Date().toISOString(),
-                }));
+                /* Generate real question templates based on subject */
+                const pgTemplates: Record<string, string[][]> = {
+                  "Matematika": [
+                    ["Tentukan hasil dari {a} × {b} + {c}", "Hasilnya adalah {d}", "{d}", "{d2}", "{d3}", "{d4}"],
+                    ["Jika x + {a} = {b}, maka nilai x adalah...", "Hitung nilai x dari persamaan linear", "{x}", "{x2}", "{x3}", "{x4}"],
+                    ["Luas lingkaran dengan jari-jari {a} cm adalah...", "Gunakan π = 3,14", "{luas}", "{luas2}", "{luas3}", "{luas4}"],
+                    ["Volume tabung dengan jari-jari {a} cm dan tinggi {b} cm adalah...", "Gunakan π = 3,14", "{vol}", "{vol2}", "{vol3}", "{vol4}"],
+                  ],
+                  "Bahasa Indonesia": [
+                    ["Manakah kalimat yang menggunakan EYD dengan benar?", "Pilih kalimat yang paling sesuai dengan kaidah bahasa Indonesia", "Kalimat A", "Kalimat B", "Kalimat C", "Kalimat D"],
+                    ["Jenis teks pada paragraf berikut termasuk...", "Identifikasi jenis teks dari cuplikan yang diberikan", "Teks Eksposisi", "Teks Narasi", "Teks Argumentasi", "Teks Deskripsi"],
+                    ["Sinonim dari kata '{kata}' adalah...", "Pilih jawaban yang memiliki arti paling mendekati", "{syn1}", "{syn2}", "{syn3}", "{syn4}"],
+                  ],
+                  "Al-Qur'an & Tafsir": [
+                    ["Surah yang termasuk golongan surah Makkiyah antara lain...", "Surah Makkiyah biasanya membahas tentang akidah dan keimanan", "Al-Baqarah", "Ali Imran", "An-Nisa", "Al-Maidah"],
+                    ["Juz ke-30 Al-Qur'an disebut juga...", "Juz 30 sering dibaca dalam shalat tarawih", "Juz Amma", "Juz Tabarak", "Juz Qaf", "Juz An-Naba"],
+                    [`Arti dari ayat \"Bismillahirrahmanirrahim\" adalah...`, `Ayat ini terdapat di awal hampir semua surah Al-Qur\'an`, `Dengan nama Allah Yang Maha Pengasih lagi Maha Penyayang`, `Dengan nama Allah Yang Maha Kuasa`, `Dengan nama Allah Yang Maha Suci`, `Dengan nama Allah Yang Maha Adil`],
+                  ],
+                  "Fiqih": [
+                    ["Rukun shalat yang kedua adalah...", "Rukun shalat merupakan hal yang wajib dilakukan", "Takbiratul Ihram", "Membaca Al-Fatihah", "Ruku'", "I'tidal"],
+                    ["Bilangan minimal shalat fardhu yang harus dikerjakan dalam sehari adalah...", "Hitung jumlah shalat fardhu dari subuh hingga isya", "3 waktu", "4 waktu", "5 waktu", "6 waktu"],
+                  ],
+                  "Akidah & Akhlak": [
+                    ["Pengertian Iman kepada Malaikat adalah...", "Iman kepada malaikat termasuk rukun iman keenam", "Membenarkan bahwa Allah menciptakan malaikat", "Menyembah malaikat", "Mengingkari malaikat", "Menganggap malaikat sama dengan manusia"],
+                    ["Contoh akhlak terpuji kepada sesama manusia adalah...", "Akhlak terpuji mencerminkan sikap positif dalam bermasyarakat", "Sombong dan angkuh", "Peduli dan menolong", "Iri hati dan dengki", "Suka menggunjing"],
+                  ],
+                };
+
+                const uraianTemplates: Record<string, string[]> = {
+                  "Matematika": [
+                    "Jelaskan langkah-langkah menyelesaikan persamaan kuadrat dengan metode pemfaktoran.",
+                    "Buktikan bahwa jumlah sudut dalam segitiga adalah 180°.",
+                    "Selesaikan soal cerita berikut tentang perbandingan dan concent.",
+                    "Jelaskan perbedaan antara barisan aritmetika dan barisan geometri beserta contohnya.",
+                    "Hitung volume dan luas permukaan bangun ruang gabungan yang diberikan.",
+                  ],
+                  "Bahasa Indonesia": [
+                    "Buatlah resume dari teks argumentasi tentang pendidikan karakter.",
+                    "Analisis struktur dan kebahasaan teks eksposisi yang dibaca.",
+                    "Tulislah karangan pendek dengan tema 'Lingkungan Hidup' minimal 3 paragraf.",
+                    "Identifikasi unsure intrinsik dan ekstrinsik dari kutipan novel yang diberikan.",
+                  ],
+                  "Al-Qur'an & Tafsir": [
+                    "Tafsirkan makna ayat 1-5 dari Surah Al-Mulk dengan bahasa sendiri.",
+                    "Jelaskan kisah Nabi Muhammad SAW dalam hijrah pertama ke Madinah.",
+                    "Sebutkan hikmah yang dapat dipetik dari kisah para sahabat Nabi.",
+                  ],
+                  "Fiqih": [
+                    "Jelaskan rukun wudhu dan sunnah-sunnah wudhu secara lengkap.",
+                    "Sebutkan syarat, rukun, dan pembatal shalat.",
+                    "Jelaskan hukum dan cara menyembelih hewan menurut syariat Islam.",
+                  ],
+                  "Akidah & Akhlak": [
+                    "Jelaskan 6 rukun iman secara lengkap beserta penjelasan masing-masing.",
+                    "Buatlah essay tentang pentingnya akhlak terpuji dalam kehidupan sehari-hari.",
+                    "Sebutkan dan jelaskan 20 sifat wajib Allah beserta dalilnya.",
+                  ],
+                };
+
+                const generated: SoalItem[] = Array.from({ length: genCount }, (_, i) => {
+                  const num = i + 1;
+                  const rand = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
+                  const a = rand(2, 20), b = rand(2, 15), c = rand(1, 10);
+
+                  if (genType === "Pilihan Ganda") {
+                    const templates = pgTemplates[genSubject];
+                    const template = templates ? templates[i % templates.length] : ["Soal nomor " + num + " tentang " + genSubject + "", "Deskripsi soal", "Opsi A", "Opsi B", "Opsi C", "Opsi D"];
+                    let question = template[0]
+                      .replace("{a}", String(a)).replace("{b}", String(b)).replace("{c}", String(c))
+                      .replace("{kata}", ["cemerlang", "gemilang", "pilihan", "teguh"][i % 4])
+                      .replace(/{luas}/g, String(Math.round(3.14 * a * a)))
+                      .replace(/{vol}/g, String(Math.round(3.14 * a * a * b)))
+                      .replace(/{x}/g, String(b - a));
+                    const distractors = [
+                      String(b - a + rand(1, 3)),
+                      String(a + b + c),
+                      String(a * b - c),
+                      String(Math.abs(a - b) + 1),
+                    ];
+                    const correct = String(b - a);
+                    const synSets = [["cerdas", "pandai", "brilian", "cemerlang"], ["besar", "luas", "lebar", "raksasa"]];
+                    const syn = synSets[i % synSets.length];
+                    let options = [
+                      template[2].replace("{x}", correct).replace("{luas}", String(Math.round(3.14 * a * a))).replace("{vol}", String(Math.round(3.14 * a * a * b))).replace("{d}", String(a * b + c)).replace(/{syn\d}/g, (m) => syn[parseInt(m[4]) - 1] || "opsi"),
+                      template[3].replace("{x2}", distractors[0]).replace("{luas2}", distractors[1]).replace("{vol2}", distractors[2]).replace("{d2}", distractors[3]).replace(/{syn\d}/g, (m) => syn[parseInt(m[4]) - 1] || "opsi"),
+                      template[4].replace("{x3}", distractors[1]).replace("{luas3}", distractors[2]).replace("{vol3}", distractors[3]).replace("{d3}", distractors[0]).replace(/{syn\d}/g, () => syn[2] || "opsi"),
+                      template[5].replace("{x4}", distractors[2]).replace("{luas4}", distractors[3]).replace("{vol4}", distractors[0]).replace("{d4}", distractors[1]).replace(/{syn\d}/g, () => syn[3] || "opsi"),
+                    ];
+                    return {
+                      id: (Date.now() + i).toString(),
+                      question: `${num}. ${question}`,
+                      options,
+                      answer: options[0],
+                      subject: genSubject,
+                      type: "Pilihan Ganda",
+                      difficulty: genDifficulty,
+                      createdAt: new Date().toISOString(),
+                    };
+                  } else {
+                    const templates = uraianTemplates[genSubject];
+                    const question = templates ? templates[i % templates.length] : `Uraikan pengetahuan Anda tentang ${genSubject} (soal nomor ${num}).`;
+                    return {
+                      id: (Date.now() + i).toString(),
+                      question: `${num}. ${question}`,
+                      options: [],
+                      answer: "",
+                      subject: genSubject,
+                      type: "Uraian",
+                      difficulty: genDifficulty,
+                      createdAt: new Date().toISOString(),
+                    };
+                  }
+                });
+
                 save([...generated, ...soalList]);
                 setGeneratorOpen(false);
-                toast.success(`${genCount} soal berhasil digenerate.`);
+                toast.success(`${genCount} soal berhasil digenerate!`);
               }}
             >
               <Wand2 className="size-3.5" /> Generate {genCount} Soal
