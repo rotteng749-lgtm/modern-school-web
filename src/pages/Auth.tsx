@@ -15,7 +15,6 @@ import {
   Loader2,
   User,
   Lock,
-  Info,
 } from "lucide-react";
 import { Suspense, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
@@ -146,19 +145,6 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
               </Button>
             </CardContent>
           </form>
-
-          {/* Default credentials hint */}
-          <div className="mx-6 mb-5 rounded-lg border bg-muted/50 p-3">
-            <div className="flex items-start gap-2">
-              <Info className="size-4 mt-0.5 text-muted-foreground shrink-0" />
-              <div className="text-xs text-muted-foreground space-y-1">
-                <p className="font-medium text-foreground/80">Akun default:</p>
-                <p><code className="rounded bg-background/50 px-1">admin</code> / <code className="rounded bg-background/50 px-1">admin123</code> — Admin</p>
-                <p><code className="rounded bg-background/50 px-1">guru</code> / <code className="rounded bg-background/50 px-1">guru123</code> — Guru</p>
-                <p><code className="rounded bg-background/50 px-1">siswa</code> / <code className="rounded bg-background/50 px-1">siswa123</code> — Siswa</p>
-              </div>
-            </div>
-          </div>
 
           <div className="py-4 px-6 text-xs text-center text-muted-foreground bg-muted border-t rounded-b-lg">
             Yayasan Mambaul Hasan · Batur Gading, Probolinggo

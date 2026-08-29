@@ -61,15 +61,15 @@ export interface MuridData {
 const STORAGE_KEY = "msw-murid";
 
 const INITIAL_MURID: MuridData[] = [
-  { id: "1", name: "Ahmad Fauzi", nisn: "0081234001", className: "XII IPA 1", gender: "Laki-laki", email: "ahmad.f@siswa.id", phone: "0812-1111-2222", parentName: "H. Fauzi", status: "aktif", username: "ahmadfauzi", password: "Ahmd@2026" },
-  { id: "2", name: "Siti Nurhaliza", nisn: "0081234002", className: "XII IPA 1", gender: "Perempuan", email: "siti.n@siswa.id", phone: "0813-2222-3333", parentName: "H. Nurhaliza", status: "aktif", username: "sitinur", password: "Siti@2026" },
-  { id: "3", name: "Budi Pratama", nisn: "0081234003", className: "XII IPA 2", gender: "Laki-laki", email: "budi.p@siswa.id", phone: "0821-3333-4444", parentName: "H. Pratama", status: "aktif", username: "budipra", password: "Budi@2026" },
-  { id: "4", name: "Dewi Sartika", nisn: "0081234004", className: "XII IPA 1", gender: "Perempuan", email: "dewi.s@siswa.id", phone: "0856-4444-5555", parentName: "H. Sartika", status: "aktif", username: "dewisart", password: "Dewi@2026" },
-  { id: "5", name: "Eko Prasetyo", nisn: "0081234005", className: "XII IPS 1", gender: "Laki-laki", email: "eko.p@siswa.id", phone: "0878-5555-6666", parentName: "H. Prasetyo", status: "keluar", username: "ekopra", password: "Eko@2026" },
-  { id: "6", name: "Fitriani Putri", nisn: "0081234006", className: "XII IPA 2", gender: "Perempuan", email: "fitri.p@siswa.id", phone: "0857-6666-7777", parentName: "H. Putri", status: "aktif", username: "fitriput", password: "Fitr@2026" },
+  { id: "1", name: "Ahmad Fauzi", nisn: "0081234001", className: "MI Kelas 6", gender: "Laki-laki", email: "ahmad.f@siswa.id", phone: "0812-1111-2222", parentName: "H. Fauzi", status: "aktif", username: "ahmadfauzi", password: "Ahmd@2026" },
+  { id: "2", name: "Siti Nurhaliza", nisn: "0081234002", className: "MI Kelas 5", gender: "Perempuan", email: "siti.n@siswa.id", phone: "0813-2222-3333", parentName: "H. Nurhaliza", status: "aktif", username: "sitinur", password: "Siti@2026" },
+  { id: "3", name: "Budi Pratama", nisn: "0081234003", className: "MI Kelas 4", gender: "Laki-laki", email: "budi.p@siswa.id", phone: "0821-3333-4444", parentName: "H. Pratama", status: "aktif", username: "budipra", password: "Budi@2026" },
+  { id: "4", name: "Dewi Sartika", nisn: "0081234004", className: "MI Kelas 6", gender: "Perempuan", email: "dewi.s@siswa.id", phone: "0856-4444-5555", parentName: "H. Sartika", status: "aktif", username: "dewisart", password: "Dewi@2026" },
+  { id: "5", name: "Eko Prasetyo", nisn: "0081234005", className: "MI Kelas 3", gender: "Laki-laki", email: "eko.p@siswa.id", phone: "0878-5555-6666", parentName: "H. Prasetyo", status: "lulus", username: "ekopra", password: "Eko@2026" },
+  { id: "6", name: "Fitriani Putri", nisn: "0081234006", className: "MI Kelas 5", gender: "Perempuan", email: "fitri.p@siswa.id", phone: "0857-6666-7777", parentName: "H. Putri", status: "aktif", username: "fitriput", password: "Fitr@2026" },
 ];
 
-const KELAS = ["X IPA 1", "X IPA 2", "X IPS 1", "X IPS 2", "XI IPA 1", "XI IPA 2", "XI IPS 1", "XI IPS 2", "XII IPA 1", "XII IPA 2", "XII IPS 1", "XII IPS 2"];
+const KELAS = ["MI Kelas 1", "MI Kelas 2", "MI Kelas 3", "MI Kelas 4", "MI Kelas 5", "MI Kelas 6"];
 
 const EMPTY_FORM: Omit<MuridData, "id"> = {
   name: "",
