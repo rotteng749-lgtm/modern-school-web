@@ -5,11 +5,15 @@ import { useState, useEffect, useCallback, createContext, useContext, type React
    Default admin: admin / admin123
    ═══════════════════════════════════════════ */
 
+export type Role = "admin" | "guru" | "siswa" | "orangtua";
+
 export interface LocalUser {
   username: string;
   name: string;
-  role: "admin" | "guru" | "siswa";
+  role: Role;
   avatar?: string;
+  /** For orangtua role: linked child's murid ID */
+  childId?: string;
 }
 
 const STORAGE_KEY = "msw-auth";
@@ -26,6 +30,10 @@ const DEFAULT_USERS: Record<string, { password: string; user: LocalUser }> = {
   siswa: {
     password: "siswa123",
     user: { username: "siswa", name: "Siswa Demo", role: "siswa" },
+  },
+  ortu: {
+    password: "ortu123",
+    user: { username: "ortu", name: "Orang Tua Demo", role: "orangtua", childId: "1" },
   },
 };
 
@@ -50,7 +58,7 @@ interface AuthCtx {
   isLoading: boolean;
   signIn: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signOut: () => void;
-  addUser: (username: string, password: string, name: string, role: LocalUser["role"]) => boolean;
+  addUser: (username: string, password: string, name: string, role: Role, childId?: string) => boolean;
 }
 
 const Ctx = createContext<AuthCtx | null>(null);
@@ -84,10 +92,10 @@ export function LocalAuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(STORAGE_KEY);
   }, []);
 
-  const addUser = useCallback((username: string, password: string, name: string, role: LocalUser["role"]) => {
+  const addUser = useCallback((username: string, password: string, name: string, role: Role, childId?: string) => {
     const users = getUsers();
     if (users[username]) return false;
-    users[username] = { password, user: { username, name, role } };
+    users[username] = { password, user: { username, name, role, childId } };
     saveUsers(users);
     return true;
   }, []);

@@ -16,6 +16,7 @@ import {
   Inbox,
   Settings,
   Database,
+  BookOpen,
 } from "lucide-react";
 import { YmhLogo } from "@/components/YmhLogo";
 import { SCHOOL_LOGO_PRESETS } from "@/components/SchoolLogos";
@@ -38,7 +39,7 @@ import {
   SidebarInset,
 } from "@/components/ui/sidebar";
 
-type Role = "admin" | "guru" | "siswa";
+type Role = "admin" | "guru" | "siswa" | "orangtua";
 
 interface NavItem {
   label: string;
@@ -50,17 +51,18 @@ interface NavItem {
 /* All navigation items with role visibility */
 const NAV_ITEMS: NavItem[] = [
   // ── All roles ──
-  { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard", roles: ["admin", "guru", "siswa"] },
-  { label: "Ujian / CBT", icon: ClipboardCheck, href: "/ujian", roles: ["admin", "guru", "siswa"] },
-  { label: "Absensi", icon: FileQuestion, href: "/absensi", roles: ["admin", "guru", "siswa"] },
-  { label: "Pengumuman", icon: Megaphone, href: "/pengumuman", roles: ["admin", "guru", "siswa"] },
-  { label: "Gallery", icon: Images, href: "/gallery", roles: ["admin", "guru", "siswa"] },
-  { label: "Profil", icon: UserCircle, href: "/profil", roles: ["admin", "guru", "siswa"] },
+  { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard", roles: ["admin", "guru", "siswa", "orangtua"] },
+  { label: "Ujian / CBT", icon: ClipboardCheck, href: "/ujian", roles: ["admin", "guru", "siswa", "orangtua"] },
+  { label: "Absensi", icon: FileQuestion, href: "/absensi", roles: ["admin", "guru", "siswa", "orangtua"] },
+  { label: "Pengumuman", icon: Megaphone, href: "/pengumuman", roles: ["admin", "guru", "siswa", "orangtua"] },
+  { label: "Gallery", icon: Images, href: "/gallery", roles: ["admin", "guru", "siswa", "orangtua"] },
+  { label: "Profil", icon: UserCircle, href: "/profil", roles: ["admin", "guru", "siswa", "orangtua"] },
   // ── Admin + Guru ──
   { label: "Bank Soal", icon: Trophy, href: "/bank-soal", roles: ["admin", "guru"] },
   // ── Admin only ──
   { label: "Guru", icon: Users, href: "/guru", roles: ["admin"] },
   { label: "Murid", icon: GraduationCap, href: "/murid", roles: ["admin"] },
+  { label: "Mapel", icon: BookOpen, href: "/mapel", roles: ["admin"] },
   { label: "Analytics", icon: BarChart3, href: "/analytics", roles: ["admin"] },
   { label: "Inbox", icon: Inbox, href: "/inbox", roles: ["admin"] },
   { label: "Database", icon: Database, href: "/database", roles: ["admin"] },

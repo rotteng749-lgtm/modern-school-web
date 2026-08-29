@@ -9,12 +9,12 @@ import { Navigate } from "react-router";
    to specific roles (e.g. admin-only pages).
    ═══════════════════════════════════════════ */
 
-type Role = "admin" | "guru" | "siswa";
+import type { Role } from "@/hooks/use-local-auth";
 
 interface RequireRoleProps {
   children: ReactNode;
   /** Roles allowed to access this route. If omitted, any authenticated user can access. */
-  allowedRoles?: Role[];
+  allowedRoles?: ("admin" | "guru" | "siswa" | "orangtua")[];
   /** Where to redirect if unauthorized. Defaults to /dashboard. */
   redirectTo?: string;
 }

@@ -97,6 +97,7 @@ export default function Murid() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [statusFilter, setStatusFilter] = useState<"all" | "aktif" | "lulus" | "keluar">("all");
 
   /* ── Import state ── */
   const [importDialogOpen, setImportDialogOpen] = useState(false);
@@ -128,13 +129,15 @@ export default function Murid() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
   };
 
-  const filtered = muridList.filter(
-    (m) =>
+  const filtered = muridList.filter((m) => {
+    const matchSearch =
       m.name.toLowerCase().includes(search.toLowerCase()) ||
       m.className.toLowerCase().includes(search.toLowerCase()) ||
       m.nisn.includes(search) ||
-      m.parentName.toLowerCase().includes(search.toLowerCase())
-  );
+      m.parentName.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = statusFilter === "all" || m.status === statusFilter;
+    return matchSearch && matchStatus;
+  });
 
   const openAdd = () => {
     setEditingId(null);
@@ -163,6 +166,18 @@ export default function Murid() {
   const handleDelete = (id: string) => {
     if (confirm("Hapus murid ini?")) {
       save(muridList.filter((m) => m.id !== id));
+    }
+  };
+
+  const handleLulus = (id: string) => {
+    if (confirm("Tandai siswa ini sebagai lulus? Status akan berubah ke 'lulus'.")) {
+      save(muridList.map((m) => m.id === id ? { ...m, status: "lulus" as const } : m));
+    }
+  };
+
+  const handleDeleteLulus = () => {
+    if (confirm("Hapus semua siswa berstatus 'lulus'? Tindakan ini tidak dapat dibatalkan.")) {
+      save(muridList.filter((m) => m.status !== "lulus"));
     }
   };
 
@@ -274,6 +289,8 @@ export default function Murid() {
   };
 
   const active = muridList.filter((m) => m.status === "aktif").length;
+  const graduated = muridList.filter((m) => m.status === "lulus").length;
+  const expelled = muridList.filter((m) => m.status === "keluar").length;
 
   return (
     <DashboardShell>
@@ -332,6 +349,31 @@ export default function Murid() {
             </div>
           </Card3D>
         )}
+
+        {/* Status filter tabs */}
+        <div className="flex gap-2 flex-wrap">
+          {["all", "aktif", "lulus", "keluar"].map((s) => (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(s as typeof statusFilter)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                statusFilter === s
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+              }`}
+            >
+              {s === "all" ? "Semua" : s === "aktif" ? `Aktif (${active})` : s === "lulus" ? `Lulus (${graduated})` : `Keluar (${expelled})`}
+            </button>
+          ))}
+          {graduated > 0 && (
+            <button
+              onClick={handleDeleteLulus}
+              className="px-3 py-1.5 rounded-full text-xs font-medium bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors ml-auto"
+            >
+              Hapus Semua Lulus
+            </button>
+          )}
+        </div>
 
         {/* Search */}
         <div className="flex gap-2">
@@ -419,6 +461,11 @@ export default function Murid() {
                       </p>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
+                      {m.status === "aktif" && (
+                        <Button variant="ghost" size="icon-sm" onClick={() => handleLulus(m.id)} title="Tandai Lulus">
+                          <GraduationCap className="size-3.5 text-emerald-500" />
+                        </Button>
+                      )}
                       <Button variant="ghost" size="icon-sm" onClick={() => openEdit(m)}>
                         <Edit className="size-3.5" />
                       </Button>

@@ -14,6 +14,7 @@ import {
   Check,
   AlertCircle,
   Copy,
+  Wand2,
 } from "lucide-react";
 import { Card3D } from "@/components/Card3D";
 import { DashboardShell } from "@/components/DashboardShell";
@@ -56,18 +57,9 @@ export interface SoalItem {
 
 const STORAGE_KEY = "msw-bank-soal";
 
-const SUBJECTS = [
-  "Matematika",
-  "Bahasa Indonesia",
-  "Bahasa Inggris",
-  "Fisika",
-  "Kimia",
-  "Biologi",
-  "IPS",
-  "Pendidikan Agama",
-  "PJOK",
-  "Informatika",
-];
+import { getSubjects, initSubjects } from "@/lib/subjects-store";
+
+let SUBJECTS = getSubjects();
 
 const INITIAL_SOAL: SoalItem[] = [
   {
@@ -137,6 +129,13 @@ export default function BankSoal() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
 
+  /* ── Generator state ── */
+  const [generatorOpen, setGeneratorOpen] = useState(false);
+  const [genSubject, setGenSubject] = useState("Matematika");
+  const [genCount, setGenCount] = useState(10);
+  const [genType, setGenType] = useState<"Pilihan Ganda" | "Uraian">("Pilihan Ganda");
+  const [genDifficulty, setGenDifficulty] = useState<"Mudah" | "Sedang" | "Sulit">("Sedang");
+
   /* ── Import dialog ── */
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
@@ -150,6 +149,8 @@ export default function BankSoal() {
 
   /* ── Load from localStorage ── */
   useEffect(() => {
+    initSubjects();
+    SUBJECTS = getSubjects();
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
@@ -365,6 +366,15 @@ export default function BankSoal() {
             >
               <Upload className="size-3.5" />
               Import
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full"
+              onClick={() => setGeneratorOpen(true)}
+            >
+              <Wand2 className="size-3.5" />
+              Generate
             </Button>
             <Button size="sm" className="rounded-full" onClick={openAdd}>
               <Plus className="size-4" />
@@ -879,6 +889,98 @@ export default function BankSoal() {
               </div>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ═══ GENERATOR DIALOG ═══ */}
+      <Dialog open={generatorOpen} onOpenChange={setGeneratorOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Wand2 className="size-5 text-primary" />
+              Generate Soal Massal
+            </DialogTitle>
+            <DialogDescription>
+              Buat beberapa soal sekaligus dalam format placeholder — isi kontennya nanti.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Mata Pelajaran</Label>
+              <select
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                value={genSubject}
+                onChange={(e) => setGenSubject(e.target.value)}
+              >
+                {SUBJECTS.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Jumlah Soal</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={genCount}
+                  onChange={(e) => setGenCount(Math.min(100, Math.max(1, Number(e.target.value))))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Jenis Soal</Label>
+                <select
+                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                  value={genType}
+                  onChange={(e) => setGenType(e.target.value as typeof genType)}
+                >
+                  <option value="Pilihan Ganda">Pilihan Ganda</option>
+                  <option value="Uraian">Uraian</option>
+                </select>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Tingkat Kesulitan</Label>
+              <select
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                value={genDifficulty}
+                onChange={(e) => setGenDifficulty(e.target.value as typeof genDifficulty)}
+              >
+                <option value="Mudah">Mudah</option>
+                <option value="Sedang">Sedang</option>
+                <option value="Sulit">Sulit</option>
+              </select>
+            </div>
+            <div className="p-3 rounded-lg bg-muted/50 text-xs text-muted-foreground">
+              Akan membuat {genCount} soal placeholder ({genType}, {genDifficulty}) untuk <strong>{genSubject}</strong>. Isi konten soal setelah generate.
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" size="sm" onClick={() => setGeneratorOpen(false)}>
+              <X className="size-3.5" /> Batal
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                const generated: SoalItem[] = Array.from({ length: genCount }, (_, i) => ({
+                  id: (Date.now() + i).toString(),
+                  question: `[Soal ${i + 1}] Tuliskan pertanyaan di sini...`,
+                  options: genType === "Pilihan Ganda" ? ["Pilihan A", "Pilihan B", "Pilihan C", "Pilihan D"] : [],
+                  answer: "",
+                  subject: genSubject,
+                  type: genType,
+                  difficulty: genDifficulty,
+                  createdAt: new Date().toISOString(),
+                }));
+                save([...generated, ...soalList]);
+                setGeneratorOpen(false);
+                toast.success(`${genCount} soal berhasil digenerate.`);
+              }}
+            >
+              <Wand2 className="size-3.5" /> Generate {genCount} Soal
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </DashboardShell>

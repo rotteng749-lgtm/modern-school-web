@@ -34,6 +34,13 @@ const ADMIN_STATS = [
   { label: "Rata-rata Nilai", value: "78.4", change: "+2.1", positive: true, icon: TrendingUp, color: "text-emerald-500", bg: "bg-emerald-500/10" },
 ];
 
+const ADMIN_ANALYTICS = [
+  { label: "Tingkat Kehadiran", value: 94, color: "bg-emerald-500" },
+  { label: "Tingkat Kelulusan", value: 98, color: "bg-blue-500" },
+  { label: "Rata-rata Nilai Nasional", value: 76, color: "bg-amber-500" },
+  { label: "Partisipasi Ujian Online", value: 87, color: "bg-primary" },
+];
+
 const ADMIN_SHORTCUTS = [
   { label: "Kelola Guru", icon: Users, href: "/guru", desc: "Data tenaga pengajar" },
   { label: "Kelola Murid", icon: GraduationCap, href: "/murid", desc: "Data siswa aktif" },
@@ -216,6 +223,28 @@ export default function Dashboard() {
               </div>
             </div>
 
+            {/* Analytics bars */}
+            <div>
+              <h2 className="mb-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Analitik Institusi
+              </h2>
+              <Card3D intensity={2} className="p-5 obsidian-sheen">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {ADMIN_ANALYTICS.map((a) => (
+                    <div key={a.label}>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <p className="text-xs font-medium">{a.label}</p>
+                        <p className="text-xs font-bold">{a.value}%</p>
+                      </div>
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full ${a.color} transition-all`} style={{ width: `${a.value}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card3D>
+            </div>
+
             {/* Activity */}
             <div>
               <h2 className="mb-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -313,6 +342,74 @@ export default function Dashboard() {
                   ))}
                 </div>
               </Card3D>
+            </div>
+          </>
+        )}
+
+        {/* ═══════════ ORANGTUA DASHBOARD ═══════════ */}
+        {role === "orangtua" && (
+          <>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {SISWA_STATS.map((stat) => (
+                <Card3D key={stat.label} intensity={4} className="p-5 obsidian-sheen">
+                  <div className="flex items-start justify-between">
+                    <div className={`flex size-10 items-center justify-center rounded-xl ${stat.bg}`}>
+                      <stat.icon className={`size-5 ${stat.color}`} />
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <p className="text-2xl font-bold tracking-tight">{stat.value}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">{stat.label}</p>
+                  </div>
+                </Card3D>
+              ))}
+            </div>
+            <div>
+              <h2 className="mb-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Data Anak</h2>
+              <Card3D intensity={2} className="p-5 obsidian-sheen">
+                <div className="flex items-center gap-4">
+                  <div className="flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary text-xl font-bold">
+                    AF
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold">Ahmad Fauzi</p>
+                    <p className="text-sm text-muted-foreground">MI Kelas 6 · NISN: 0081234001</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Status: <span className="text-emerald-500 font-medium">Aktif</span></p>
+                  </div>
+                </div>
+                <div className="mt-4 grid grid-cols-3 gap-3">
+                  <div className="text-center p-3 rounded-lg bg-muted/50">
+                    <p className="text-lg font-bold">82.5</p>
+                    <p className="text-[10px] text-muted-foreground">Rata-rata</p>
+                  </div>
+                  <div className="text-center p-3 rounded-lg bg-muted/50">
+                    <p className="text-lg font-bold">94%</p>
+                    <p className="text-[10px] text-muted-foreground">Kehadiran</p>
+                  </div>
+                  <div className="text-center p-3 rounded-lg bg-muted/50">
+                    <p className="text-lg font-bold">12</p>
+                    <p className="text-[10px] text-muted-foreground">Peringkat</p>
+                  </div>
+                </div>
+              </Card3D>
+            </div>
+            <div>
+              <h2 className="mb-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ujian Mendatang</h2>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {SISWA_EXAMS.map((exam, i) => (
+                  <Card3D key={i} intensity={3} className="p-4 obsidian-sheen">
+                    <div className="flex items-start gap-3">
+                      <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                        <ClipboardCheck className="size-5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold">{exam.name}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{exam.date}</p>
+                      </div>
+                    </div>
+                  </Card3D>
+                ))}
+              </div>
             </div>
           </>
         )}

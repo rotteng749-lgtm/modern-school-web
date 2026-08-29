@@ -29,6 +29,7 @@ const Gallery = lazy(() => import("./pages/Gallery.tsx"));
 const AnalyticsPage = lazy(() => import("./pages/Analytics.tsx"));
 const InboxPage = lazy(() => import("./pages/Inbox.tsx"));
 const DatabasePage = lazy(() => import("./pages/Database.tsx"));
+const MapelPage = lazy(() => import("./pages/Mapel.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 // Simple loading fallback for route transitions
@@ -266,6 +267,16 @@ createRoot(document.getElementById("root")!).render(
                   <RequireAuth>
                     <RequireRole allowedRoles={["admin"]}>
                       <DatabasePage />
+                    </RequireRole>
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/mapel"
+                element={
+                  <RequireAuth>
+                    <RequireRole allowedRoles={["admin"]}>
+                      <MapelPage />
                     </RequireRole>
                   </RequireAuth>
                 }
