@@ -8,13 +8,15 @@ import {
   FolderOpen,
   Search,
   RefreshCw,
+  Image as ImageIcon,
+  Check,
 } from "lucide-react";
 import { Card3D } from "@/components/Card3D";
 import { DashboardShell } from "@/components/DashboardShell";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { FileUpload, ImagePicker } from "@/components/FileUpload";
+import { FileUpload } from "@/components/FileUpload";
 import {
   getAllFiles,
   deleteFile,
@@ -22,11 +24,16 @@ import {
   formatBytes,
   type StoredFile,
 } from "@/lib/file-storage";
+import {
+  saveMainLogo,
+  getMainLogo,
+  removeMainLogo,
+} from "@/lib/logo-storage";
+import { SCHOOL_LOGO_PRESETS } from "@/components/SchoolLogos";
 import { toast } from "sonner";
 
 /* ═══════════════════════════════════════════
-   DATABASE — File/Image Management
-   Upload, browse, delete stored images
+   DATABASE — File/Image Management + Logo
    ═══════════════════════════════════════════ */
 
 const CATEGORIES = [
@@ -54,6 +61,7 @@ export default function DatabasePage() {
   const [search, setSearch] = useState("");
   const [selectedFile, setSelectedFile] = useState<StoredFile | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [currentLogo, setCurrentLogo] = useState<string | null>(getMainLogo());
 
   const loadData = useCallback(async () => {
     try {
@@ -61,12 +69,19 @@ export default function DatabasePage() {
       setFiles(all.sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt)));
       const usage = await getStorageUsage();
       setStorage(usage);
+      setCurrentLogo(getMainLogo());
     } catch { /* ignore */ }
     setLoaded(true);
   }, []);
 
   useEffect(() => {
     loadData();
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      setCurrentLogo(detail);
+    };
+    window.addEventListener("logo-changed", handler);
+    return () => window.removeEventListener("logo-changed", handler);
   }, [loadData]);
 
   const filtered = files.filter((f) => {
@@ -85,12 +100,25 @@ export default function DatabasePage() {
     if (!window.confirm("Yakin ingin menghapus gambar ini?")) return;
     await deleteFile(id);
     setFiles((prev) => prev.filter((f) => f.id !== id));
-    setStorage((prev) => ({
-      ...prev,
-      count: prev.count - 1,
-    }));
+    setStorage((prev) => ({ ...prev, count: prev.count - 1 }));
     if (selectedFile?.id === id) setSelectedFile(null);
     toast.success("Gambar berhasil dihapus.");
+  };
+
+  const handleLogoUpload = async (file: StoredFile) => {
+    await saveMainLogo(file.dataUrl, file.name);
+    // Delete from regular files since it's now the logo
+    await deleteFile(file.id);
+    setFiles((prev) => prev.filter((f) => f.id !== file.id));
+    setCurrentLogo(file.dataUrl);
+    toast.success("Logo utama berhasil diperbarui!");
+  };
+
+  const handleRemoveLogo = async () => {
+    if (!window.confirm("Hapus logo utama? Sidebar akan kembali ke icon default.")) return;
+    await removeMainLogo();
+    setCurrentLogo(null);
+    toast.success("Logo utama berhasil dihapus.");
   };
 
   const categoryCounts = files.reduce(
@@ -142,12 +170,88 @@ export default function DatabasePage() {
           ))}
         </div>
 
-        {/* Upload Section */}
+        {/* ═══ LOGO MANAGEMENT ═══ */}
+        <Card3D intensity={2} className="obsidian-sheen">
+          <div className="p-5 sm:p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <ImageIcon className="size-4 text-muted-foreground" />
+              <h2 className="text-sm font-semibold">Logo Utama Sekolah</h2>
+            </div>
+            <p className="text-xs text-muted-foreground mb-4">
+              Logo ini tampil di sidebar, header, dan landing page. Pilih preset atau upload logo sendiri.
+            </p>
+
+            {/* Preset logo selector */}
+            <div className="mb-5">
+              <p className="text-xs font-medium text-muted-foreground mb-2">Logo Preset Yayasan Mambaul Hasan</p>
+              <div className="grid grid-cols-4 gap-3">
+                {SCHOOL_LOGO_PRESETS.map((preset) => {
+                  const LogoComp = preset.component;
+                  return (
+                    <button
+                      key={preset.id}
+                      onClick={async () => {
+                        // Convert SVG to data URL for storage
+                        const svgEl = document.createElement("div");
+                        svgEl.innerHTML = "";
+                        document.body.appendChild(svgEl);
+                        // Use a simpler approach: store the preset ID
+                        localStorage.setItem("msw-logo-preset", preset.id);
+                        window.dispatchEvent(new CustomEvent("logo-changed", { detail: `preset:${preset.id}` }));
+                        toast.success(`Logo ${preset.name} dipilih!`);
+                      }}
+                      className="flex flex-col items-center gap-2 p-3 rounded-xl border-2 border-transparent hover:border-primary/50 bg-muted/30 hover:bg-muted/60 transition-all group"
+                    >
+                      <LogoComp className="w-16 h-16 group-hover:scale-110 transition-transform" />
+                      <span className="text-[10px] text-muted-foreground text-center leading-tight">{preset.abbr}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-start gap-6">
+              {/* Current Logo Preview */}
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-32 h-32 rounded-2xl border-2 border-dashed bg-muted/50 flex items-center justify-center overflow-hidden">
+                  {currentLogo ? (
+                    <img src={currentLogo} alt="Logo" className="w-full h-full object-contain p-2" />
+                  ) : (
+                    <div className="flex flex-col items-center gap-1 text-muted-foreground">
+                      <ImageIcon className="size-8 opacity-40" />
+                      <span className="text-[10px]">Belum ada logo</span>
+                    </div>
+                  )}
+                </div>
+                {currentLogo && (
+                  <Button variant="destructive" size="sm" className="rounded-full text-xs" onClick={handleRemoveLogo}>
+                    <Trash2 className="size-3" />
+                    Hapus Logo
+                  </Button>
+                )}
+              </div>
+
+              {/* Upload */}
+              <div className="flex-1 w-full">
+                <FileUpload
+                  category="logo"
+                  onUploaded={handleLogoUpload}
+                  maxSizeMB={5}
+                />
+                <p className="text-[10px] text-muted-foreground mt-2">
+                  Format: PNG, JPG, atau WEBP. Ukuran optimal 200×200px.
+                </p>
+              </div>
+            </div>
+          </div>
+        </Card3D>
+
+        {/* Upload Section — other files */}
         <Card3D intensity={2} className="obsidian-sheen">
           <div className="p-5 sm:p-6">
             <div className="flex items-center gap-2 mb-4">
               <Upload className="size-4 text-muted-foreground" />
-              <h2 className="text-sm font-semibold">Upload Gambar Baru</h2>
+              <h2 className="text-sm font-semibold">Upload Gambar Lainnya</h2>
             </div>
             <div className="grid gap-4 lg:grid-cols-[1fr_2fr]">
               <div className="space-y-3">
@@ -155,7 +259,7 @@ export default function DatabasePage() {
                   Kategori
                 </label>
                 <div className="flex flex-wrap gap-2">
-                  {CATEGORIES.filter((c) => c.value !== "all").map((cat) => (
+                  {CATEGORIES.filter((c) => c.value !== "all" && c.value !== "logo").map((cat) => (
                     <button
                       key={cat.value}
                       type="button"
@@ -241,7 +345,6 @@ export default function DatabasePage() {
                     alt={file.name}
                     className="w-full h-full object-cover"
                   />
-                  {/* Overlay on hover */}
                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-2">
                     <Badge variant="secondary" className={`text-[9px] ${CATEGORY_COLORS[file.category] || ""}`}>
                       {file.category}
@@ -273,15 +376,12 @@ export default function DatabasePage() {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
           onClick={() => setSelectedFile(null)}
         >
-          <Card3D
-            intensity={2}
-            className="w-full max-w-lg obsidian-sheen"
-          >
+          <Card3D intensity={2} className="w-full max-w-lg obsidian-sheen">
             <div className="p-5" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-semibold truncate">{selectedFile.name}</h3>
                 <Button variant="ghost" size="icon-sm" onClick={() => setSelectedFile(null)}>
-                  <Trash2 className="size-3.5" />
+                  ×
                 </Button>
               </div>
               <div className="rounded-lg overflow-hidden border mb-4">
@@ -293,8 +393,8 @@ export default function DatabasePage() {
               </div>
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div>
-                  <span className="text-muted-foreground">Kategori</span>
-                  <Badge variant="secondary" className={`ml-2 text-[10px] ${CATEGORY_COLORS[selectedFile.category] || ""}`}>
+                  <span className="text-muted-foreground">Kategori: </span>
+                  <Badge variant="secondary" className={`text-[10px] ${CATEGORY_COLORS[selectedFile.category] || ""}`}>
                     {selectedFile.category}
                   </Badge>
                 </div>

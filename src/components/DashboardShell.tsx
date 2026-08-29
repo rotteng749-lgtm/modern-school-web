@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { type ReactNode, useState, useEffect } from "react";
 import { Link, useLocation } from "react-router";
 import {
   LayoutDashboard,
@@ -18,6 +18,8 @@ import {
   Database,
 } from "lucide-react";
 import { YmhLogo } from "@/components/YmhLogo";
+import { SCHOOL_LOGO_PRESETS } from "@/components/SchoolLogos";
+import { getMainLogo } from "@/lib/logo-storage";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useLocalAuth } from "@/hooks/use-local-auth";
@@ -56,6 +58,28 @@ const NAV_ITEMS = [
 export function DashboardShell({ children }: { children: ReactNode }) {
   const location = useLocation();
   const { user, signOut } = useLocalAuth();
+  const [logo, setLogo] = useState<string | null>(getMainLogo());
+  const [logoPreset, setLogoPreset] = useState<string | null>(() => localStorage.getItem("msw-logo-preset"));
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (typeof detail === "string" && detail.startsWith("preset:")) {
+        const presetId = detail.replace("preset:", "");
+        setLogoPreset(presetId);
+        setLogo(null);
+      } else {
+        setLogo(detail);
+        if (detail) setLogoPreset(null);
+      }
+    };
+    window.addEventListener("logo-changed", handler);
+    return () => window.removeEventListener("logo-changed", handler);
+  }, []);
+
+  const LogoDisplay = logoPreset
+    ? SCHOOL_LOGO_PRESETS.find((p) => p.id === logoPreset)?.component
+    : null;
 
   return (
     <SidebarProvider defaultOpen>
@@ -63,7 +87,13 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         {/* Brand */}
         <SidebarHeader>
           <Link to="/dashboard" className="flex items-center gap-2.5 px-2 py-1">
-            <YmhLogo size={36} />
+            {logo ? (
+              <img src={logo} alt="Logo" className="size-9 rounded-lg object-contain" />
+            ) : LogoDisplay ? (
+              <LogoDisplay className="size-9" />
+            ) : (
+              <YmhLogo size={36} />
+            )}
             <div className="flex flex-col leading-none">
               <span className="text-sm font-bold tracking-tight">YMH</span>
               <span className="text-[9px] text-muted-foreground">Batur Gading</span>

@@ -2,18 +2,19 @@ import { useState, useRef, useEffect } from "react";
 import QRCode from "qrcode";
 import {
   Sparkles,
-  Download,
-  Palette,
   RotateCcw,
   Star,
   Wand2,
   Copy,
   Check,
   Layers,
-  Eye,
   KeyRound,
   User,
   QrCode,
+  Users,
+  GraduationCap,
+  Palette,
+  Search,
 } from "lucide-react";
 import { Card3D } from "@/components/Card3D";
 import { DashboardShell } from "@/components/DashboardShell";
@@ -35,13 +36,7 @@ import {
 
 /* ═══════════════════════════════════════════
    STUDIO ELAINA — 3D Anime Character Card
-   Features:
-   - SVG anime witch character
-   - 3D parallax depth card (CSS perspective)
-   - 8 gradient presets
-   - Sparkle particles + stars
-   - QR code with student credentials
-   - Username & password display
+   Now pulls real student/guru data from localStorage
    ═══════════════════════════════════════════ */
 
 const GRADIENT_PRESETS = [
@@ -56,6 +51,26 @@ const GRADIENT_PRESETS = [
 ];
 
 const BADGE_OPTIONS = ["Siswa", "Guru", "Admin", "Ketua Kelas", "OSIS", "Perpustakaan", "Lab", "Witch", "Custom"];
+
+/* Types matching the Murid and Guru data */
+interface MuridItem {
+  id: string;
+  name: string;
+  nisn: string;
+  className: string;
+  gender: string;
+  photo?: string;
+  username?: string;
+  password?: string;
+}
+
+interface GuruItem {
+  id: string;
+  name: string;
+  nip: string;
+  subject: string;
+  photo?: string;
+}
 
 interface ProfileCardData {
   name: string;
@@ -148,7 +163,7 @@ function StarDecoration({ count = 8 }: { count?: number }) {
   );
 }
 
-/* QR Code component using canvas */
+/* QR Code component */
 function QRCodeDisplay({ value, size = 120 }: { value: string; size?: number }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -157,10 +172,7 @@ function QRCodeDisplay({ value, size = 120 }: { value: string; size?: number }) 
       QRCode.toCanvas(canvasRef.current, value, {
         width: size,
         margin: 1,
-        color: {
-          dark: "#ffffff",
-          light: "rgba(0,0,0,0)",
-        },
+        color: { dark: "#ffffff", light: "rgba(0,0,0,0)" },
         errorCorrectionLevel: "M",
       }).catch(() => {});
     }
@@ -180,9 +192,75 @@ export default function StudioElaina() {
   const [copied, setCopied] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
 
-  const gradient = GRADIENT_PRESETS[card.gradientIndex];
+  /* ── Real data from localStorage ── */
+  const [muridList, setMuridList] = useState<MuridItem[]>([]);
+  const [guruList, setGuruList] = useState<GuruItem[]>([]);
+  const [dataSource, setDataSource] = useState<"manual" | "siswa" | "guru">("manual");
+  const [selectedId, setSelectedId] = useState<string>("");
+  const [personSearch, setPersonSearch] = useState("");
 
-  const resetCard = () => setCard(DEFAULT_CARD);
+  useEffect(() => {
+    try {
+      const m = localStorage.getItem("msw-murid");
+      if (m) setMuridList(JSON.parse(m));
+    } catch { /* ignore */ }
+    try {
+      const g = localStorage.getItem("msw-guru");
+      if (g) setGuruList(JSON.parse(g));
+    } catch { /* ignore */ }
+  }, []);
+
+  const gradient = GRADIENT_PRESETS[card.gradientIndex];
+  const resetCard = () => { setCard(DEFAULT_CARD); setDataSource("manual"); setSelectedId(""); };
+
+  /* Auto-fill from selected person */
+  const selectPerson = (type: "siswa" | "guru", id: string) => {
+    setDataSource(type);
+    setSelectedId(id);
+
+    if (type === "siswa") {
+      const s = muridList.find((m) => m.id === id);
+      if (s) {
+        setCard({
+          ...card,
+          name: s.name,
+          role: "Siswa",
+          subtitle: `${s.className} · NISN ${s.nisn}`,
+          username: s.username || "",
+          password: s.password || "",
+          showQR: !!(s.username && s.password),
+          showCredentials: !!(s.username && s.password),
+        });
+      }
+    } else {
+      const g = guruList.find((gr) => gr.id === id);
+      if (g) {
+        setCard({
+          ...card,
+          name: g.name,
+          role: "Guru",
+          subtitle: g.subject,
+          username: g.nip || "",
+          password: "",
+          showQR: false,
+          showCredentials: false,
+        });
+      }
+    }
+  };
+
+  const filteredSiswa = muridList.filter(
+    (s) =>
+      s.name.toLowerCase().includes(personSearch.toLowerCase()) ||
+      s.className.toLowerCase().includes(personSearch.toLowerCase()) ||
+      s.nisn.includes(personSearch)
+  );
+
+  const filteredGuru = guruList.filter(
+    (g) =>
+      g.name.toLowerCase().includes(personSearch.toLowerCase()) ||
+      g.subject.toLowerCase().includes(personSearch.toLowerCase())
+  );
 
   const handleCopyCSS = () => {
     const css = `.card-elaina {\n  background: linear-gradient(135deg, ${gradient.from}, ${gradient.via}, ${gradient.to});\n  border-radius: 1.5rem;\n  padding: 2rem;\n  color: white;\n  position: relative;\n  overflow: hidden;\n  box-shadow: 0 20px 60px -12px ${gradient.from}66;\n  perspective: 1000px;\n}`;
@@ -207,7 +285,7 @@ export default function StudioElaina() {
               <Sparkles className="size-5 text-primary" />
             </div>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              Buat kartu profil 3D bergaya anime — mouse ke kartu untuk efek paralaks
+              Buat kartu profil 3D bergaya anime — gerakkan mouse ke kartu untuk efek paralaks
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -225,6 +303,100 @@ export default function StudioElaina() {
         <div className="grid gap-6 lg:grid-cols-2">
           {/* ── CONTROLS ── */}
           <div className="space-y-4">
+            {/* ── PERSON SELECTOR ── */}
+            <Card3D intensity={2} className="p-5 obsidian-sheen">
+              <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                <Search className="size-4 text-primary" />
+                Pilih dari Database
+              </h3>
+              <p className="text-[11px] text-muted-foreground mb-3">
+                Pilih siswa atau guru dari database untuk auto-fill kartu
+              </p>
+              <div className="space-y-3">
+                <div className="relative">
+                  <Search className="absolute left-3 top-2.5 size-3.5 text-muted-foreground" />
+                  <Input
+                    className="pl-8 text-sm"
+                    placeholder="Cari nama, kelas, NIP..."
+                    value={personSearch}
+                    onChange={(e) => setPersonSearch(e.target.value)}
+                  />
+                </div>
+
+                {/* Siswa list */}
+                {filteredSiswa.length > 0 && (
+                  <div>
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                      <GraduationCap className="size-3" /> Siswa ({filteredSiswa.length})
+                    </p>
+                    <div className="max-h-32 overflow-y-auto space-y-1 border rounded-lg p-1.5">
+                      {filteredSiswa.map((s) => (
+                        <button
+                          key={s.id}
+                          onClick={() => selectPerson("siswa", s.id)}
+                          className={`w-full flex items-center gap-2 p-1.5 rounded-md text-left text-xs transition-colors ${
+                            selectedId === s.id && dataSource === "siswa"
+                              ? "bg-primary/15 text-primary"
+                              : "hover:bg-accent/50"
+                          }`}
+                        >
+                          <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[9px] font-bold text-primary">
+                            {s.name.split(" ").map((w) => w[0]).join("").slice(0, 2)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{s.name}</p>
+                            <p className="text-[9px] text-muted-foreground">{s.className} · {s.nisn}</p>
+                          </div>
+                          {s.username && <KeyRound className="size-3 text-muted-foreground shrink-0" />}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Guru list */}
+                {filteredGuru.length > 0 && (
+                  <div>
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                      <Users className="size-3" /> Guru ({filteredGuru.length})
+                    </p>
+                    <div className="max-h-32 overflow-y-auto space-y-1 border rounded-lg p-1.5">
+                      {filteredGuru.map((g) => (
+                        <button
+                          key={g.id}
+                          onClick={() => selectPerson("guru", g.id)}
+                          className={`w-full flex items-center gap-2 p-1.5 rounded-md text-left text-xs transition-colors ${
+                            selectedId === g.id && dataSource === "guru"
+                              ? "bg-primary/15 text-primary"
+                              : "hover:bg-accent/50"
+                          }`}
+                        >
+                          <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-blue-500/10 text-[9px] font-bold text-blue-500">
+                            {g.name.split(" ").map((w) => w[0]).join("").slice(0, 2)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{g.name}</p>
+                            <p className="text-[9px] text-muted-foreground">{g.subject}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {filteredSiswa.length === 0 && filteredGuru.length === 0 && personSearch && (
+                  <p className="text-xs text-muted-foreground text-center py-2">
+                    Tidak ada data yang cocok.
+                  </p>
+                )}
+                {muridList.length === 0 && guruList.length === 0 && !personSearch && (
+                  <p className="text-xs text-muted-foreground text-center py-2">
+                    Belum ada data di database. Tambah siswa/guru terlebih dahulu.
+                  </p>
+                )}
+              </div>
+            </Card3D>
+
             <Card3D intensity={2} className="p-5 obsidian-sheen">
               <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
                 <Wand2 className="size-4 text-primary" />
@@ -329,9 +501,7 @@ export default function StudioElaina() {
                         ? "ring-2 ring-primary ring-offset-2 ring-offset-background scale-105"
                         : "hover:scale-105"
                     }`}
-                    style={{
-                      background: `linear-gradient(135deg, ${g.from}, ${g.via}, ${g.to})`,
-                    }}
+                    style={{ background: `linear-gradient(135deg, ${g.from}, ${g.via}, ${g.to})` }}
                     title={g.name}
                   >
                     {card.gradientIndex === i && (
@@ -427,7 +597,6 @@ export default function StudioElaina() {
               Preview — Gerakkan mouse ke kartu
             </h3>
 
-            {/* 3D Parallax Card */}
             <ParallaxCard
               intensity={card.tiltIntensity}
               className="w-full max-w-sm"
@@ -497,14 +666,12 @@ export default function StudioElaina() {
                   <div className="absolute inset-x-0 bottom-0 p-6 z-10">
                     <div className="h-px bg-white/20 mb-3" />
 
-                    {/* QR Code */}
                     {card.showQR && card.username && (
                       <div className="flex justify-center mb-3">
                         <QRCodeDisplay value={qrValue} size={100} />
                       </div>
                     )}
 
-                    {/* Credentials */}
                     {card.showCredentials && (
                       <div
                         className="rounded-xl p-3 mb-3"
@@ -527,12 +694,11 @@ export default function StudioElaina() {
                       </div>
                     )}
 
-                    {/* Bottom info */}
                     <p className="text-sm text-white/80 drop-shadow-sm">{card.subtitle}</p>
                     <div className="mt-2 flex items-center gap-3 text-xs text-white/50">
                       <span className="flex items-center gap-1">
                         <Star className="size-3 fill-current" />
-                        Modern School Web
+                        Yayasan Mambaul Hasan
                       </span>
                       <span>·</span>
                       <span>3D Card</span>

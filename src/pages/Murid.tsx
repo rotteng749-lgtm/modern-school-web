@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   GraduationCap,
   Plus,
@@ -11,6 +11,10 @@ import {
   X,
   Save,
   Calendar,
+  Upload,
+  FileText,
+  Copy,
+  Check,
 } from "lucide-react";
 import { Card3D } from "@/components/Card3D";
 import { DashboardShell } from "@/components/DashboardShell";
@@ -33,9 +37,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { FileUpload } from "@/components/FileUpload";
+import { parseDocx, type ParsedStudent } from "@/lib/docx-import";
 
 /* ═══════════════════════════════════════════
-   MURID MANAGEMENT — Modern School Web
+   MURID MANAGEMENT — Yayasan Mambaul Hasan
    ═══════════════════════════════════════════ */
 
 export interface MuridData {
@@ -49,17 +54,19 @@ export interface MuridData {
   parentName: string;
   status: "aktif" | "lulus" | "keluar";
   photo?: string; // base64 data URL
+  username?: string;
+  password?: string;
 }
 
 const STORAGE_KEY = "msw-murid";
 
 const INITIAL_MURID: MuridData[] = [
-  { id: "1", name: "Ahmad Fauzi", nisn: "0081234001", className: "XII IPA 1", gender: "Laki-laki", email: "ahmad.f@siswa.id", phone: "0812-1111-2222", parentName: "H. Fauzi", status: "aktif" },
-  { id: "2", name: "Siti Nurhaliza", nisn: "0081234002", className: "XII IPA 1", gender: "Perempuan", email: "siti.n@siswa.id", phone: "0813-2222-3333", parentName: "H. Nurhaliza", status: "aktif" },
-  { id: "3", name: "Budi Pratama", nisn: "0081234003", className: "XII IPA 2", gender: "Laki-laki", email: "budi.p@siswa.id", phone: "0821-3333-4444", parentName: "H. Pratama", status: "aktif" },
-  { id: "4", name: "Dewi Sartika", nisn: "0081234004", className: "XII IPA 1", gender: "Perempuan", email: "dewi.s@siswa.id", phone: "0856-4444-5555", parentName: "H. Sartika", status: "aktif" },
-  { id: "5", name: "Eko Prasetyo", nisn: "0081234005", className: "XII IPS 1", gender: "Laki-laki", email: "eko.p@siswa.id", phone: "0878-5555-6666", parentName: "H. Prasetyo", status: "keluar" },
-  { id: "6", name: "Fitriani Putri", nisn: "0081234006", className: "XII IPA 2", gender: "Perempuan", email: "fitri.p@siswa.id", phone: "0857-6666-7777", parentName: "H. Putri", status: "aktif" },
+  { id: "1", name: "Ahmad Fauzi", nisn: "0081234001", className: "XII IPA 1", gender: "Laki-laki", email: "ahmad.f@siswa.id", phone: "0812-1111-2222", parentName: "H. Fauzi", status: "aktif", username: "ahmadfauzi", password: "Ahmd@2026" },
+  { id: "2", name: "Siti Nurhaliza", nisn: "0081234002", className: "XII IPA 1", gender: "Perempuan", email: "siti.n@siswa.id", phone: "0813-2222-3333", parentName: "H. Nurhaliza", status: "aktif", username: "sitinur", password: "Siti@2026" },
+  { id: "3", name: "Budi Pratama", nisn: "0081234003", className: "XII IPA 2", gender: "Laki-laki", email: "budi.p@siswa.id", phone: "0821-3333-4444", parentName: "H. Pratama", status: "aktif", username: "budipra", password: "Budi@2026" },
+  { id: "4", name: "Dewi Sartika", nisn: "0081234004", className: "XII IPA 1", gender: "Perempuan", email: "dewi.s@siswa.id", phone: "0856-4444-5555", parentName: "H. Sartika", status: "aktif", username: "dewisart", password: "Dewi@2026" },
+  { id: "5", name: "Eko Prasetyo", nisn: "0081234005", className: "XII IPS 1", gender: "Laki-laki", email: "eko.p@siswa.id", phone: "0878-5555-6666", parentName: "H. Prasetyo", status: "keluar", username: "ekopra", password: "Eko@2026" },
+  { id: "6", name: "Fitriani Putri", nisn: "0081234006", className: "XII IPA 2", gender: "Perempuan", email: "fitri.p@siswa.id", phone: "0857-6666-7777", parentName: "H. Putri", status: "aktif", username: "fitriput", password: "Fitr@2026" },
 ];
 
 const KELAS = ["X IPA 1", "X IPA 2", "X IPS 1", "X IPS 2", "XI IPA 1", "XI IPA 2", "XI IPS 1", "XI IPS 2", "XII IPA 1", "XII IPA 2", "XII IPS 1", "XII IPS 2"];
@@ -74,6 +81,8 @@ const EMPTY_FORM: Omit<MuridData, "id"> = {
   parentName: "",
   status: "aktif",
   photo: undefined,
+  username: "",
+  password: "",
 };
 
 const STATUS_STYLE = {
@@ -88,6 +97,17 @@ export default function Murid() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
+
+  /* ── Import state ── */
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [parsedStudents, setParsedStudents] = useState<ParsedStudent[]>([]);
+  const [importing, setImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState(0);
+  const [importPhase, setImportPhase] = useState("");
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const [selectedForImport, setSelectedForImport] = useState<Set<number>>(new Set());
+  const [importClassName, setImportClassName] = useState("X IPA 1");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     try {
@@ -124,7 +144,7 @@ export default function Murid() {
 
   const openEdit = (m: MuridData) => {
     setEditingId(m.id);
-    setForm({ name: m.name, nisn: m.nisn, className: m.className, gender: m.gender, email: m.email, phone: m.phone, parentName: m.parentName, status: m.status, photo: m.photo });
+    setForm({ name: m.name, nisn: m.nisn, className: m.className, gender: m.gender, email: m.email, phone: m.phone, parentName: m.parentName, status: m.status, photo: m.photo, username: m.username || "", password: m.password || "" });
     setDialogOpen(true);
   };
 
@@ -146,6 +166,113 @@ export default function Murid() {
     }
   };
 
+  /* ── .docx Import handlers ── */
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImportPhase("Membaca dokumen...");
+    setImportProgress(10);
+
+    // Simulate reading progress
+    const progressInterval = setInterval(() => {
+      setImportProgress((p) => Math.min(p + 8, 60));
+    }, 150);
+
+    try {
+      const students = await parseDocx(file);
+      clearInterval(progressInterval);
+      setImportProgress(70);
+      setImportPhase("Memproses data...");
+
+      setTimeout(() => {
+        setParsedStudents(students);
+        setSelectedForImport(new Set(students.map((_, i) => i)));
+        setImportProgress(100);
+        setImportPhase("Siap diimpor!");
+        setTimeout(() => {
+          setImportDialogOpen(true);
+        }, 400);
+      }, 400);
+    } catch (err) {
+      clearInterval(progressInterval);
+      setImportProgress(0);
+      setImportPhase("Gagal membaca dokumen");
+      console.error("DOCX parse error:", err);
+    }
+
+    // Reset file input
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const toggleImportSelection = (idx: number) => {
+    setSelectedForImport((prev) => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedForImport.size === parsedStudents.length) {
+      setSelectedForImport(new Set());
+    } else {
+      setSelectedForImport(new Set(parsedStudents.map((_, i) => i)));
+    }
+  };
+
+  const handleImport = () => {
+    setImporting(true);
+    setImportProgress(0);
+    setImportPhase("Mengimpor data...");
+
+    const selected = parsedStudents.filter((_, i) => selectedForImport.has(i));
+    let imported = 0;
+
+    const interval = setInterval(() => {
+      imported++;
+      setImportProgress(Math.round((imported / selected.length) * 100));
+
+      if (imported >= selected.length) {
+        clearInterval(interval);
+        setImportPhase("Selesai!");
+
+        // Actually save to localStorage
+        const newMurids: MuridData[] = selected.map((s, i) => ({
+          id: (Date.now() + i).toString(),
+          name: s.name,
+          nisn: s.nisn,
+          className: importClassName,
+          gender: "Laki-laki" as const,
+          email: `${s.username}@siswa.id`,
+          phone: "",
+          parentName: "",
+          status: "aktif" as const,
+          username: s.username,
+          password: s.password,
+        }));
+
+        save([...newMurids, ...muridList]);
+
+        setTimeout(() => {
+          setImporting(false);
+          setImportDialogOpen(false);
+          setParsedStudents([]);
+          setImportProgress(0);
+          setImportPhase("");
+        }, 600);
+      }
+    }, 80);
+  };
+
+  const copyToClipboard = (text: string, idx: number) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedIdx(idx);
+      setTimeout(() => setCopiedIdx(null), 1500);
+    });
+  };
+
   const active = muridList.filter((m) => m.status === "aktif").length;
 
   return (
@@ -156,14 +283,55 @@ export default function Murid() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Murid</h1>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              Kelola data siswa
+              Kelola data siswa — {muridList.length} terdaftar
             </p>
           </div>
-          <Button size="sm" className="rounded-full" onClick={openAdd}>
-            <Plus className="size-4" />
-            Tambah Murid
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* Import .docx button */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".docx"
+              className="hidden"
+              onChange={handleFileSelect}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <FileText className="size-4" />
+              Import .docx
+            </Button>
+            <Button size="sm" className="rounded-full" onClick={openAdd}>
+              <Plus className="size-4" />
+              Tambah Murid
+            </Button>
+          </div>
         </div>
+
+        {/* Import progress bar */}
+        {importPhase && !importDialogOpen && (
+          <Card3D intensity={1} className="p-4 obsidian-sheen">
+            <div className="flex items-center gap-3 mb-2">
+              <Upload className="size-4 text-primary animate-pulse" />
+              <span className="text-sm font-medium">{importPhase}</span>
+              <span className="ml-auto text-xs text-muted-foreground">{importProgress}%</span>
+            </div>
+            <div className="h-2 bg-muted rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-300 ease-out"
+                style={{
+                  width: `${importProgress}%`,
+                  background: importProgress >= 100
+                    ? "linear-gradient(90deg, #10b981, #34d399)"
+                    : "linear-gradient(90deg, #6366f1, #818cf8)",
+                }}
+              />
+            </div>
+          </Card3D>
+        )}
 
         {/* Search */}
         <div className="flex gap-2">
@@ -238,11 +406,16 @@ export default function Murid() {
                         {m.className} · NISN: {m.nisn} · {m.gender}
                       </p>
                       <div className="mt-1 flex items-center gap-3 text-[11px] text-muted-foreground">
-                        <span className="flex items-center gap-1"><Mail className="size-3" />{m.email}</span>
-                        <span className="flex items-center gap-1"><Phone className="size-3" />{m.phone}</span>
+                        {m.email && <span className="flex items-center gap-1"><Mail className="size-3" />{m.email}</span>}
+                        {m.phone && <span className="flex items-center gap-1"><Phone className="size-3" />{m.phone}</span>}
                       </div>
+                      {m.username && (
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          User: <span className="font-mono">{m.username}</span> · Pass: <span className="font-mono">{m.password}</span>
+                        </p>
+                      )}
                       <p className="text-[11px] text-muted-foreground mt-0.5">
-                        Orang tua: {m.parentName}
+                        Orang tua: {m.parentName || "—"}
                       </p>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
@@ -356,6 +529,24 @@ export default function Murid() {
                 onChange={(e) => setForm({ ...form, parentName: e.target.value })}
               />
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Username</Label>
+                <Input
+                  placeholder="otomatis dari nama"
+                  value={form.username}
+                  onChange={(e) => setForm({ ...form, username: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Password</Label>
+                <Input
+                  placeholder="otomatis random"
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                />
+              </div>
+            </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Foto Profil</Label>
               {form.photo ? (
@@ -384,6 +575,144 @@ export default function Murid() {
               {editingId ? "Simpan" : "Tambah"}
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ═══ Import .docx Dialog ═══ */}
+      <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="size-5 text-primary" />
+              Import dari .docx
+            </DialogTitle>
+            <DialogDescription>
+              {parsedStudents.length} siswa ditemukan dalam dokumen. Pilih siswa yang ingin diimpor.
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Import progress bar */}
+          {importing && (
+            <div className="space-y-2 mt-3">
+              <div className="flex items-center gap-2 text-sm">
+                <Upload className="size-4 text-primary animate-pulse" />
+                <span>{importPhase}</span>
+                <span className="ml-auto text-muted-foreground">{importProgress}%</span>
+              </div>
+              <div className="h-2 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-200"
+                  style={{
+                    width: `${importProgress}%`,
+                    background: "linear-gradient(90deg, #10b981, #34d399)",
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {!importing && parsedStudents.length > 0 && (
+            <>
+              {/* Class selector + select all */}
+              <div className="flex items-center gap-3 mt-3">
+                <div className="flex-1 space-y-1.5">
+                  <Label className="text-xs">Kelas Tujuan</Label>
+                  <Select value={importClassName} onValueChange={setImportClassName}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {KELAS.map((k) => (
+                        <SelectItem key={k} value={k}>{k}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="pt-5">
+                  <Button variant="outline" size="sm" onClick={toggleSelectAll}>
+                    {selectedForImport.size === parsedStudents.length ? "Batal Pilih" : "Pilih Semua"}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Parsed students table */}
+              <div className="mt-3 border rounded-lg overflow-hidden">
+                <div className="max-h-64 overflow-y-auto">
+                  <table className="w-full text-sm">
+                    <thead className="sticky top-0 bg-background border-b">
+                      <tr className="text-left text-xs text-muted-foreground">
+                        <th className="p-2 w-8">
+                          <input
+                            type="checkbox"
+                            checked={selectedForImport.size === parsedStudents.length}
+                            onChange={toggleSelectAll}
+                            className="accent-primary"
+                          />
+                        </th>
+                        <th className="p-2">Nama</th>
+                        <th className="p-2">NISN</th>
+                        <th className="p-2">Username</th>
+                        <th className="p-2">Password</th>
+                        <th className="p-2 w-8"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {parsedStudents.map((s, i) => (
+                        <tr
+                          key={i}
+                          className={`${selectedForImport.has(i) ? "bg-primary/5" : "opacity-60"} hover:bg-accent/30 transition-colors`}
+                        >
+                          <td className="p-2">
+                            <input
+                              type="checkbox"
+                              checked={selectedForImport.has(i)}
+                              onChange={() => toggleImportSelection(i)}
+                              className="accent-primary"
+                            />
+                          </td>
+                          <td className="p-2 font-medium">{s.name}</td>
+                          <td className="p-2 font-mono text-xs">{s.nisn}</td>
+                          <td className="p-2 font-mono text-xs">{s.username}</td>
+                          <td className="p-2 font-mono text-xs">{s.password}</td>
+                          <td className="p-2">
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              onClick={() => copyToClipboard(`${s.username} / ${s.password}`, i)}
+                            >
+                              {copiedIdx === i ? (
+                                <Check className="size-3 text-emerald-500" />
+                              ) : (
+                                <Copy className="size-3" />
+                              )}
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Summary */}
+              <div className="flex items-center justify-between mt-3 text-xs text-muted-foreground">
+                <span>{selectedForImport.size} dari {parsedStudents.length} dipilih</span>
+                <span>Kelas: {importClassName}</span>
+              </div>
+
+              {/* Import button */}
+              <div className="flex justify-end gap-2 mt-4">
+                <Button variant="outline" size="sm" onClick={() => { setImportDialogOpen(false); setParsedStudents([]); }}>
+                  <X className="size-3.5" />
+                  Batal
+                </Button>
+                <Button size="sm" onClick={handleImport} disabled={selectedForImport.size === 0}>
+                  <Upload className="size-3.5" />
+                  Impor {selectedForImport.size} Siswa
+                </Button>
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </DashboardShell>

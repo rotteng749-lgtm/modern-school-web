@@ -27,6 +27,7 @@ import { Card3D } from "@/components/Card3D";
 import { useLocalAuth } from "@/hooks/use-local-auth";
 import { ChatbotWidget } from "@/components/ChatbotWidget";
 import { YmhLogo } from "@/components/YmhLogo";
+import { getMainLogo } from "@/lib/logo-storage";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { toast } from "sonner";
 
@@ -166,8 +167,14 @@ function ContactForm() {
 export default function Landing() {
   const { user } = useLocalAuth();
   const [mounted, setMounted] = useState(false);
+  const [logo, setLogo] = useState<string | null>(getMainLogo());
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setMounted(true);
+    const handler = (e: Event) => setLogo((e as CustomEvent).detail);
+    window.addEventListener("logo-changed", handler);
+    return () => window.removeEventListener("logo-changed", handler);
+  }, []);
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
@@ -180,7 +187,11 @@ export default function Landing() {
       >
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <Link to="/" className="flex items-center gap-2.5">
-            <YmhLogo size={38} />
+            {logo ? (
+              <img src={logo} alt="Logo" className="h-9 w-9 object-contain" />
+            ) : (
+              <YmhLogo size={38} />
+            )}
             <span className="text-lg font-bold tracking-tight hidden sm:block">Yayasan Mambaul Hasan</span>
           </Link>
 
