@@ -22,6 +22,11 @@ const Guru = lazy(() => import("./pages/Guru.tsx"));
 const Murid = lazy(() => import("./pages/Murid.tsx"));
 const UjianDetail = lazy(() => import("./pages/UjianDetail.tsx"));
 const StudioElaina = lazy(() => import("./pages/StudioElaina.tsx"));
+const Pengaturan = lazy(() => import("./pages/Pengaturan.tsx"));
+const Pengumuman = lazy(() => import("./pages/Pengumuman.tsx"));
+const Gallery = lazy(() => import("./pages/Gallery.tsx"));
+const AnalyticsPage = lazy(() => import("./pages/Analytics.tsx"));
+const InboxPage = lazy(() => import("./pages/Inbox.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 // Simple loading fallback for route transitions
@@ -196,6 +201,46 @@ createRoot(document.getElementById("root")!).render(
                 element={
                   <RequireAuth>
                     <StudioElaina />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/pengaturan"
+                element={
+                  <RequireAuth>
+                    <Pengaturan />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/pengumuman"
+                element={
+                  <RequireAuth>
+                    <Pengumuman />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/gallery"
+                element={
+                  <RequireAuth>
+                    <Gallery />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/analytics"
+                element={
+                  <RequireAuth>
+                    <AnalyticsPage />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/inbox"
+                element={
+                  <RequireAuth>
+                    <InboxPage />
                   </RequireAuth>
                 }
               />

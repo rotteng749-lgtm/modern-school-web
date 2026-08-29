@@ -12,11 +12,21 @@ import {
   Terminal,
   Lock,
   Activity,
+  Send,
+  Mail,
+  Phone,
+  MapPin,
+  MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Card3D } from "@/components/Card3D";
 import { useLocalAuth } from "@/hooks/use-local-auth";
+import { ChatbotWidget } from "@/components/ChatbotWidget";
+import { toast } from "sonner";
 
 /* ═══════════════════════════════════════════
    LANDING — Modern School Web
@@ -53,6 +63,77 @@ const CAPABILITIES = [
   { icon: Shield, text: "Audit trail lengkap" },
 ];
 
+/* ── Contact Form Component ── */
+function ContactForm() {
+  const [form, setForm] = useState({ name: "", email: "", phone: "", subject: "", message: "" });
+  const [sending, setSending] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name || !form.email || !form.message) {
+      toast.error("Nama, email, dan pesan wajib diisi.");
+      return;
+    }
+    setSending(true);
+    // Store to localStorage inbox
+    const inbox = JSON.parse(localStorage.getItem("msw-inbox") || "[]");
+    inbox.unshift({
+      id: Date.now().toString(),
+      ...form,
+      isRead: false,
+      createdAt: new Date().toISOString().split("T")[0],
+    });
+    localStorage.setItem("msw-inbox", JSON.stringify(inbox));
+    setTimeout(() => {
+      setSending(false);
+      setForm({ name: "", email: "", phone: "", subject: "", message: "" });
+      toast.success("Pesan berhasil terkirim! Kami akan segera merespons.");
+    }, 500);
+  };
+
+  return (
+    <Card3D intensity={2} className="obsidian-sheen p-6 sm:p-7">
+      <div className="flex items-center gap-2 mb-5">
+        <MessageSquare className="size-4.5 text-primary" />
+        <h3 className="text-sm font-semibold">Kirim Pesan</h3>
+      </div>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <Label className="text-xs">Nama *</Label>
+            <Input value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} placeholder="Nama lengkap" />
+          </div>
+          <div>
+            <Label className="text-xs">Email *</Label>
+            <Input type="email" value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))} placeholder="email@contoh.com" />
+          </div>
+          <div>
+            <Label className="text-xs">Telepon</Label>
+            <Input value={form.phone} onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))} placeholder="08xx xxxx xxxx" />
+          </div>
+          <div>
+            <Label className="text-xs">Subjek</Label>
+            <Input value={form.subject} onChange={(e) => setForm((p) => ({ ...p, subject: e.target.value }))} placeholder="Perihal pesan" />
+          </div>
+        </div>
+        <div>
+          <Label className="text-xs">Pesan *</Label>
+          <Textarea
+            value={form.message}
+            onChange={(e) => setForm((p) => ({ ...p, message: e.target.value }))}
+            placeholder="Tuliskan pesan Anda di sini..."
+            rows={4}
+          />
+        </div>
+        <Button type="submit" disabled={sending} className="rounded-full w-full sm:w-auto">
+          <Send className="size-4" />
+          {sending ? "Mengirim..." : "Kirim Pesan"}
+        </Button>
+      </form>
+    </Card3D>
+  );
+}
+
 export default function Landing() {
   const { user } = useLocalAuth();
   const [mounted, setMounted] = useState(false);
@@ -76,6 +157,10 @@ export default function Landing() {
             <span className="text-xl font-bold tracking-tight">MSW</span>
           </Link>
 
+          <div className="hidden sm:flex items-center gap-6">
+            <a href="#fitur" className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">Fitur</a>
+            <a href="#kontak" className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">Kontak</a>
+          </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
             <Button asChild size="sm" className="rounded-full px-4">
@@ -224,6 +309,48 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ── CONTACT FORM ── */}
+      <section id="kontak" className="border-t bg-card/30">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 py-20 sm:py-28">
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            whileInView={{ y: 0, opacity: 1 }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.5 }}
+            className="text-center mb-12"
+          >
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">Hubungi Kami</h2>
+            <p className="mt-3 text-muted-foreground max-w-md mx-auto">
+              Pertanyaan, masukan, atau kerja sama — kami siap membantu.
+            </p>
+          </motion.div>
+
+          <div className="grid gap-8 lg:grid-cols-2">
+            {/* Contact Info */}
+            <div className="space-y-5">
+              {[
+                { icon: MapPin, label: "Alamat", value: "Jl. Pendidikan No. 123, Jakarta Selatan" },
+                { icon: Phone, label: "Telepon", value: "+62 21 5555 0123" },
+                { icon: Mail, label: "Email", value: "admin@msw.sch.id" },
+              ].map((c) => (
+                <div key={c.label} className="flex items-start gap-3">
+                  <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
+                    <c.icon className="size-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{c.label}</p>
+                    <p className="text-sm font-medium mt-0.5">{c.value}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Contact Form */}
+            <ContactForm />
+          </div>
+        </div>
+      </section>
+
       {/* ── FOOTER ── */}
       <footer className="border-t bg-card/40">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
@@ -235,6 +362,9 @@ export default function Landing() {
           <p>CBT · Absensi · Bank Soal · Analitik</p>
         </div>
       </footer>
+
+      {/* ── CHATBOT ── */}
+      <ChatbotWidget />
     </div>
   );
 }

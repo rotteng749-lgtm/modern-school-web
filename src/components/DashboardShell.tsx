@@ -10,6 +10,11 @@ import {
   GraduationCap,
   Users,
   Sparkles,
+  Megaphone,
+  Images,
+  BarChart3,
+  Inbox,
+  Settings,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -36,6 +41,11 @@ const NAV_ITEMS = [
   { label: "Guru", icon: Users, href: "/guru" },
   { label: "Murid", icon: GraduationCap, href: "/murid" },
   { label: "Bank Soal", icon: Trophy, href: "/bank-soal" },
+  { label: "Pengumuman", icon: Megaphone, href: "/pengumuman" },
+  { label: "Gallery", icon: Images, href: "/gallery" },
+  { label: "Analytics", icon: BarChart3, href: "/analytics" },
+  { label: "Inbox", icon: Inbox, href: "/inbox" },
+  { label: "Pengaturan", icon: Settings, href: "/pengaturan" },
   { label: "Studio Elaina", icon: Sparkles, href: "/studio-elaina" },
   { label: "Profil", icon: UserCircle, href: "/profil" },
 ] as const;

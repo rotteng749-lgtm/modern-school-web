@@ -5,13 +5,14 @@ interface Card3DProps {
   children: ReactNode;
   className?: string;
   intensity?: number; // max tilt degrees (default 6)
+  onClick?: () => void;
 }
 
 /**
  * 3D CSS card — applies subtle rotateX/rotateY on mouse move (desktop).
  * On mobile / touch devices: no tilt, just normal card.
  */
-export function Card3D({ children, className, intensity = 6 }: Card3DProps) {
+export function Card3D({ children, className, intensity = 6, onClick }: Card3DProps) {
   const cardRef = useRef<HTMLDivElement>(null);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -45,8 +46,10 @@ export function Card3D({ children, className, intensity = 6 }: Card3DProps) {
         onMouseLeave={handleMouseLeave}
         className={cn(
           "card-3d rounded-xl border bg-card text-card-foreground",
+          onClick && "cursor-pointer",
           className
         )}
+        onClick={onClick}
       >
         {children}
       </div>
