@@ -129,12 +129,16 @@ export default function BankSoal() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
 
-  /* ── Generator state ── */
-  const [generatorOpen, setGeneratorOpen] = useState(false);
-  const [genSubject, setGenSubject] = useState("Matematika");
-  const [genCount, setGenCount] = useState(10);
-  const [genType, setGenType] = useState<"Pilihan Ganda" | "Uraian">("Pilihan Ganda");
-  const [genDifficulty, setGenDifficulty] = useState<"Mudah" | "Sedang" | "Sulit">("Sedang");
+  /* ── Batch creator state ── */
+  const [batchOpen, setBatchOpen] = useState(false);
+  const [batchSubject, setBatchSubject] = useState("Matematika");
+  const [batchType, setBatchType] = useState<"Pilihan Ganda" | "Uraian">("Pilihan Ganda");
+  const [batchDifficulty, setBatchDifficulty] = useState<"Mudah" | "Sedang" | "Sulit">("Sedang");
+  const [batchQueue, setBatchQueue] = useState<SoalItem[]>([]);
+  const [batchQuestion, setBatchQuestion] = useState("");
+  const [batchOptions, setBatchOptions] = useState(["", "", "", ""]);
+  const [batchAnswer, setBatchAnswer] = useState("");
+  const [batchEditIdx, setBatchEditIdx] = useState<number | null>(null);
 
   /* ── Import dialog ── */
   const [importDialogOpen, setImportDialogOpen] = useState(false);
@@ -371,10 +375,10 @@ export default function BankSoal() {
               variant="outline"
               size="sm"
               className="rounded-full"
-              onClick={() => setGeneratorOpen(true)}
+              onClick={() => setBatchOpen(true)}
             >
               <Wand2 className="size-3.5" />
-              Generate
+              Buat Batch
             </Button>
             <Button size="sm" className="rounded-full" onClick={openAdd}>
               <Plus className="size-4" />
@@ -892,197 +896,225 @@ export default function BankSoal() {
         </DialogContent>
       </Dialog>
 
-      {/* ═══ GENERATOR DIALOG ═══ */}
-      <Dialog open={generatorOpen} onOpenChange={setGeneratorOpen}>
-        <DialogContent className="max-w-md">
+      {/* ═══ BATCH CREATOR DIALOG ═══ */}
+      <Dialog open={batchOpen} onOpenChange={(open) => {
+        setBatchOpen(open);
+        if (!open) { setBatchQueue([]); setBatchQuestion(""); setBatchOptions(["", "", "", ""]); setBatchAnswer(""); setBatchEditIdx(null); }
+      }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Wand2 className="size-5 text-primary" />
-              Generate Soal Massal
+              Buat Soal Batch
+              {batchQueue.length > 0 && (
+                <span className="ml-1 text-xs font-normal text-muted-foreground">({batchQueue.length} soal)</span>
+              )}
             </DialogTitle>
             <DialogDescription>
-              Buat beberapa soal sekaligus dalam format placeholder — isi kontennya nanti.
+              Tulis soal satu per satu, lalu simpan sekaligus.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 mt-2">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Mata Pelajaran</Label>
+
+          {/* ── Settings bar ── */}
+          <div className="flex flex-wrap gap-2 mt-2">
+            <div className="flex-1 min-w-[140px]">
+              <Label className="text-[10px] text-muted-foreground">Mapel</Label>
               <select
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                value={genSubject}
-                onChange={(e) => setGenSubject(e.target.value)}
+                className="w-full rounded-md border bg-background px-2 py-1.5 text-xs"
+                value={batchSubject}
+                onChange={(e) => setBatchSubject(e.target.value)}
               >
-                {SUBJECTS.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
+                {SUBJECTS.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Jumlah Soal</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  max={100}
-                  value={genCount}
-                  onChange={(e) => setGenCount(Math.min(100, Math.max(1, Number(e.target.value))))}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Jenis Soal</Label>
-                <select
-                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                  value={genType}
-                  onChange={(e) => setGenType(e.target.value as typeof genType)}
-                >
-                  <option value="Pilihan Ganda">Pilihan Ganda</option>
-                  <option value="Uraian">Uraian</option>
-                </select>
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Tingkat Kesulitan</Label>
+            <div className="w-28">
+              <Label className="text-[10px] text-muted-foreground">Jenis</Label>
               <select
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                value={genDifficulty}
-                onChange={(e) => setGenDifficulty(e.target.value as typeof genDifficulty)}
+                className="w-full rounded-md border bg-background px-2 py-1.5 text-xs"
+                value={batchType}
+                onChange={(e) => setBatchType(e.target.value as typeof batchType)}
+              >
+                <option value="Pilihan Ganda">Pilihan Ganda</option>
+                <option value="Uraian">Uraian</option>
+              </select>
+            </div>
+            <div className="w-28">
+              <Label className="text-[10px] text-muted-foreground">Kesulitan</Label>
+              <select
+                className="w-full rounded-md border bg-background px-2 py-1.5 text-xs"
+                value={batchDifficulty}
+                onChange={(e) => setBatchDifficulty(e.target.value as typeof batchDifficulty)}
               >
                 <option value="Mudah">Mudah</option>
                 <option value="Sedang">Sedang</option>
                 <option value="Sulit">Sulit</option>
               </select>
             </div>
-            <div className="p-3 rounded-lg bg-muted/50 text-xs text-muted-foreground">
-              Akan membuat {genCount} soal placeholder ({genType}, {genDifficulty}) untuk <strong>{genSubject}</strong>. Isi konten soal setelah generate.
+          </div>
+
+          {/* ── Question form ── */}
+          <div className="space-y-3 mt-3 p-3 rounded-lg border bg-muted/30">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Soal / Pertanyaan</Label>
+              <textarea
+                className="w-full min-h-[70px] rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-y"
+                placeholder="Tuliskan soal di sini..."
+                value={batchQuestion}
+                onChange={(e) => setBatchQuestion(e.target.value)}
+              />
+            </div>
+            {batchType === "Pilihan Ganda" && (
+              <div className="space-y-1.5">
+                <Label className="text-xs">Pilihan Jawaban</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                  {batchOptions.map((opt, i) => (
+                    <div key={i} className="flex items-center gap-1.5">
+                      <span className="flex size-6 shrink-0 items-center justify-center rounded bg-muted text-[10px] font-bold text-muted-foreground">
+                        {String.fromCharCode(65 + i)}
+                      </span>
+                      <input
+                        className="flex-1 rounded border bg-background px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                        placeholder={`Pilihan ${String.fromCharCode(65 + i)}`}
+                        value={opt}
+                        onChange={(e) => { const n = [...batchOptions]; n[i] = e.target.value; setBatchOptions(n); }}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-muted-foreground">Jawaban Benar</Label>
+                  <select
+                    className="w-full rounded-md border bg-background px-2 py-1.5 text-xs"
+                    value={batchAnswer}
+                    onChange={(e) => setBatchAnswer(e.target.value)}
+                  >
+                    <option value="">Pilih jawaban benar</option>
+                    {batchOptions.filter((o) => o.trim()).map((opt) => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
+            {batchType === "Uraian" && (
+              <div className="space-y-1.5">
+                <Label className="text-xs">Kunci Jawaban (opsional)</Label>
+                <textarea
+                  className="w-full min-h-[50px] rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-y"
+                  placeholder="Kunci jawaban..."
+                  value={batchAnswer}
+                  onChange={(e) => setBatchAnswer(e.target.value)}
+                />
+              </div>
+            )}
+            <div className="flex justify-end">
+              <Button
+                size="sm"
+                className="rounded-full text-xs"
+                disabled={!batchQuestion.trim()}
+                onClick={() => {
+                  const cleaned = batchType === "Pilihan Ganda" ? batchOptions.filter((o) => o.trim()) : [];
+                  const q: SoalItem = {
+                    id: `batch-${Date.now()}`,
+                    question: batchQuestion,
+                    options: cleaned,
+                    answer: batchAnswer,
+                    subject: batchSubject,
+                    type: batchType,
+                    difficulty: batchDifficulty,
+                    createdAt: new Date().toISOString(),
+                  };
+                  if (batchEditIdx !== null) {
+                    const next = [...batchQueue];
+                    next[batchEditIdx] = q;
+                    setBatchQueue(next);
+                    setBatchEditIdx(null);
+                  } else {
+                    setBatchQueue([...batchQueue, q]);
+                  }
+                  setBatchQuestion("");
+                  setBatchOptions(["", "", "", ""]);
+                  setBatchAnswer("");
+                  toast.success(batchEditIdx !== null ? "Soal diperbarui." : "Soal ditambahkan ke daftar.");
+                }}
+              >
+                {batchEditIdx !== null ? "Update Soal" : "+ Tambahkan"}
+              </Button>
             </div>
           </div>
+
+          {/* ── Queue list ── */}
+          {batchQueue.length > 0 && (
+            <div className="mt-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold text-muted-foreground">Daftar Soal ({batchQueue.length})</Label>
+                <Button variant="ghost" size="sm" className="h-6 text-[10px] text-destructive"
+                  onClick={() => { setBatchQueue([]); toast.success("Semua soal dihapus."); }}>
+                  Hapus Semua
+                </Button>
+              </div>
+              <div className="border rounded-lg divide-y max-h-56 overflow-y-auto">
+                {batchQueue.map((q, i) => (
+                  <div key={q.id} className="px-3 py-2.5 hover:bg-accent/30 transition-colors group">
+                    <div className="flex items-start gap-2">
+                      <span className="flex size-5 shrink-0 items-center justify-center rounded bg-primary/10 text-[9px] font-bold text-primary">
+                        {i + 1}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium line-clamp-2">{q.question}</p>
+                        {q.type === "Pilihan Ganda" && q.options.length > 0 && (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {q.options.map((opt, j) => (
+                              <span key={j} className={`text-[9px] px-1.5 py-0.5 rounded ${q.answer === opt ? "bg-emerald-500/15 text-emerald-600" : "bg-muted text-muted-foreground"}`}>
+                                {String.fromCharCode(65 + j)}. {opt.slice(0, 25)}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        <div className="mt-1 flex items-center gap-1.5">
+                          <Badge variant="secondary" className="text-[9px]">{q.subject}</Badge>
+                          <Badge variant="outline" className="text-[9px]">{q.type}</Badge>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button variant="ghost" size="icon-sm" className="h-6 w-6"
+                          onClick={() => {
+                            setBatchEditIdx(i);
+                            setBatchQuestion(q.question);
+                            setBatchOptions(q.options.length >= 4 ? q.options : [...q.options, ...Array(4 - q.options.length).fill("")]);
+                            setBatchAnswer(q.answer);
+                          }}>
+                          <Edit className="size-3" />
+                        </Button>
+                        <Button variant="ghost" size="icon-sm" className="h-6 w-6"
+                          onClick={() => { setBatchQueue(batchQueue.filter((_, j) => j !== i)); if (batchEditIdx === i) setBatchEditIdx(null); }}>
+                          <Trash2 className="size-3 text-destructive" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Footer ── */}
           <div className="flex justify-end gap-2 mt-4">
-            <Button variant="outline" size="sm" onClick={() => setGeneratorOpen(false)}>
+            <Button variant="outline" size="sm" onClick={() => setBatchOpen(false)}>
               <X className="size-3.5" /> Batal
             </Button>
             <Button
               size="sm"
+              disabled={batchQueue.length === 0}
               onClick={() => {
-                /* Generate real question templates based on subject */
-                const pgTemplates: Record<string, string[][]> = {
-                  "Matematika": [
-                    ["Tentukan hasil dari {a} × {b} + {c}", "Hasilnya adalah {d}", "{d}", "{d2}", "{d3}", "{d4}"],
-                    ["Jika x + {a} = {b}, maka nilai x adalah...", "Hitung nilai x dari persamaan linear", "{x}", "{x2}", "{x3}", "{x4}"],
-                    ["Luas lingkaran dengan jari-jari {a} cm adalah...", "Gunakan π = 3,14", "{luas}", "{luas2}", "{luas3}", "{luas4}"],
-                    ["Volume tabung dengan jari-jari {a} cm dan tinggi {b} cm adalah...", "Gunakan π = 3,14", "{vol}", "{vol2}", "{vol3}", "{vol4}"],
-                  ],
-                  "Bahasa Indonesia": [
-                    ["Manakah kalimat yang menggunakan EYD dengan benar?", "Pilih kalimat yang paling sesuai dengan kaidah bahasa Indonesia", "Kalimat A", "Kalimat B", "Kalimat C", "Kalimat D"],
-                    ["Jenis teks pada paragraf berikut termasuk...", "Identifikasi jenis teks dari cuplikan yang diberikan", "Teks Eksposisi", "Teks Narasi", "Teks Argumentasi", "Teks Deskripsi"],
-                    ["Sinonim dari kata '{kata}' adalah...", "Pilih jawaban yang memiliki arti paling mendekati", "{syn1}", "{syn2}", "{syn3}", "{syn4}"],
-                  ],
-                  "Al-Qur'an & Tafsir": [
-                    ["Surah yang termasuk golongan surah Makkiyah antara lain...", "Surah Makkiyah biasanya membahas tentang akidah dan keimanan", "Al-Baqarah", "Ali Imran", "An-Nisa", "Al-Maidah"],
-                    ["Juz ke-30 Al-Qur'an disebut juga...", "Juz 30 sering dibaca dalam shalat tarawih", "Juz Amma", "Juz Tabarak", "Juz Qaf", "Juz An-Naba"],
-                    [`Arti dari ayat \"Bismillahirrahmanirrahim\" adalah...`, `Ayat ini terdapat di awal hampir semua surah Al-Qur\'an`, `Dengan nama Allah Yang Maha Pengasih lagi Maha Penyayang`, `Dengan nama Allah Yang Maha Kuasa`, `Dengan nama Allah Yang Maha Suci`, `Dengan nama Allah Yang Maha Adil`],
-                  ],
-                  "Fiqih": [
-                    ["Rukun shalat yang kedua adalah...", "Rukun shalat merupakan hal yang wajib dilakukan", "Takbiratul Ihram", "Membaca Al-Fatihah", "Ruku'", "I'tidal"],
-                    ["Bilangan minimal shalat fardhu yang harus dikerjakan dalam sehari adalah...", "Hitung jumlah shalat fardhu dari subuh hingga isya", "3 waktu", "4 waktu", "5 waktu", "6 waktu"],
-                  ],
-                  "Akidah & Akhlak": [
-                    ["Pengertian Iman kepada Malaikat adalah...", "Iman kepada malaikat termasuk rukun iman keenam", "Membenarkan bahwa Allah menciptakan malaikat", "Menyembah malaikat", "Mengingkari malaikat", "Menganggap malaikat sama dengan manusia"],
-                    ["Contoh akhlak terpuji kepada sesama manusia adalah...", "Akhlak terpuji mencerminkan sikap positif dalam bermasyarakat", "Sombong dan angkuh", "Peduli dan menolong", "Iri hati dan dengki", "Suka menggunjing"],
-                  ],
-                };
-
-                const uraianTemplates: Record<string, string[]> = {
-                  "Matematika": [
-                    "Jelaskan langkah-langkah menyelesaikan persamaan kuadrat dengan metode pemfaktoran.",
-                    "Buktikan bahwa jumlah sudut dalam segitiga adalah 180°.",
-                    "Selesaikan soal cerita berikut tentang perbandingan dan concent.",
-                    "Jelaskan perbedaan antara barisan aritmetika dan barisan geometri beserta contohnya.",
-                    "Hitung volume dan luas permukaan bangun ruang gabungan yang diberikan.",
-                  ],
-                  "Bahasa Indonesia": [
-                    "Buatlah resume dari teks argumentasi tentang pendidikan karakter.",
-                    "Analisis struktur dan kebahasaan teks eksposisi yang dibaca.",
-                    "Tulislah karangan pendek dengan tema 'Lingkungan Hidup' minimal 3 paragraf.",
-                    "Identifikasi unsure intrinsik dan ekstrinsik dari kutipan novel yang diberikan.",
-                  ],
-                  "Al-Qur'an & Tafsir": [
-                    "Tafsirkan makna ayat 1-5 dari Surah Al-Mulk dengan bahasa sendiri.",
-                    "Jelaskan kisah Nabi Muhammad SAW dalam hijrah pertama ke Madinah.",
-                    "Sebutkan hikmah yang dapat dipetik dari kisah para sahabat Nabi.",
-                  ],
-                  "Fiqih": [
-                    "Jelaskan rukun wudhu dan sunnah-sunnah wudhu secara lengkap.",
-                    "Sebutkan syarat, rukun, dan pembatal shalat.",
-                    "Jelaskan hukum dan cara menyembelih hewan menurut syariat Islam.",
-                  ],
-                  "Akidah & Akhlak": [
-                    "Jelaskan 6 rukun iman secara lengkap beserta penjelasan masing-masing.",
-                    "Buatlah essay tentang pentingnya akhlak terpuji dalam kehidupan sehari-hari.",
-                    "Sebutkan dan jelaskan 20 sifat wajib Allah beserta dalilnya.",
-                  ],
-                };
-
-                const generated: SoalItem[] = Array.from({ length: genCount }, (_, i) => {
-                  const num = i + 1;
-                  const rand = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
-                  const a = rand(2, 20), b = rand(2, 15), c = rand(1, 10);
-
-                  if (genType === "Pilihan Ganda") {
-                    const templates = pgTemplates[genSubject];
-                    const template = templates ? templates[i % templates.length] : ["Soal nomor " + num + " tentang " + genSubject + "", "Deskripsi soal", "Opsi A", "Opsi B", "Opsi C", "Opsi D"];
-                    let question = template[0]
-                      .replace("{a}", String(a)).replace("{b}", String(b)).replace("{c}", String(c))
-                      .replace("{kata}", ["cemerlang", "gemilang", "pilihan", "teguh"][i % 4])
-                      .replace(/{luas}/g, String(Math.round(3.14 * a * a)))
-                      .replace(/{vol}/g, String(Math.round(3.14 * a * a * b)))
-                      .replace(/{x}/g, String(b - a));
-                    const distractors = [
-                      String(b - a + rand(1, 3)),
-                      String(a + b + c),
-                      String(a * b - c),
-                      String(Math.abs(a - b) + 1),
-                    ];
-                    const correct = String(b - a);
-                    const synSets = [["cerdas", "pandai", "brilian", "cemerlang"], ["besar", "luas", "lebar", "raksasa"]];
-                    const syn = synSets[i % synSets.length];
-                    let options = [
-                      template[2].replace("{x}", correct).replace("{luas}", String(Math.round(3.14 * a * a))).replace("{vol}", String(Math.round(3.14 * a * a * b))).replace("{d}", String(a * b + c)).replace(/{syn\d}/g, (m) => syn[parseInt(m[4]) - 1] || "opsi"),
-                      template[3].replace("{x2}", distractors[0]).replace("{luas2}", distractors[1]).replace("{vol2}", distractors[2]).replace("{d2}", distractors[3]).replace(/{syn\d}/g, (m) => syn[parseInt(m[4]) - 1] || "opsi"),
-                      template[4].replace("{x3}", distractors[1]).replace("{luas3}", distractors[2]).replace("{vol3}", distractors[3]).replace("{d3}", distractors[0]).replace(/{syn\d}/g, () => syn[2] || "opsi"),
-                      template[5].replace("{x4}", distractors[2]).replace("{luas4}", distractors[3]).replace("{vol4}", distractors[0]).replace("{d4}", distractors[1]).replace(/{syn\d}/g, () => syn[3] || "opsi"),
-                    ];
-                    return {
-                      id: (Date.now() + i).toString(),
-                      question: `${num}. ${question}`,
-                      options,
-                      answer: options[0],
-                      subject: genSubject,
-                      type: "Pilihan Ganda",
-                      difficulty: genDifficulty,
-                      createdAt: new Date().toISOString(),
-                    };
-                  } else {
-                    const templates = uraianTemplates[genSubject];
-                    const question = templates ? templates[i % templates.length] : `Uraikan pengetahuan Anda tentang ${genSubject} (soal nomor ${num}).`;
-                    return {
-                      id: (Date.now() + i).toString(),
-                      question: `${num}. ${question}`,
-                      options: [],
-                      answer: "",
-                      subject: genSubject,
-                      type: "Uraian",
-                      difficulty: genDifficulty,
-                      createdAt: new Date().toISOString(),
-                    };
-                  }
-                });
-
-                save([...generated, ...soalList]);
-                setGeneratorOpen(false);
-                toast.success(`${genCount} soal berhasil digenerate!`);
+                const numbered = batchQueue.map((q, i) => ({ ...q, question: `${i + 1}. ${q.question.replace(/^\d+\.\s*/, "")}` }));
+                save([...numbered, ...soalList]);
+                toast.success(`${numbered.length} soal berhasil disimpan!`);
+                setBatchQueue([]);
+                setBatchOpen(false);
               }}
             >
-              <Wand2 className="size-3.5" /> Generate {genCount} Soal
+              <Save className="size-3.5" /> Simpan {batchQueue.length} Soal
             </Button>
           </div>
         </DialogContent>
