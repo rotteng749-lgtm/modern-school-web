@@ -18,7 +18,6 @@ import { DashboardShell } from "@/components/DashboardShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ElainaCharacter } from "@/components/ElainaCharacter";
 import { ParallaxCard, ParallaxLayer } from "@/components/ParallaxCard";
 import {
   Select,
@@ -375,7 +374,7 @@ export default function StudioElaina() {
                 {[
                   { label: "Sparkle Partikel", key: "showSparkles" as const },
                   { label: "Dekorasi Bintang", key: "showStars" as const },
-                  { label: "Karakter", key: "showCharacter" as const },
+                  { label: "Magic Circle", key: "showCharacter" as const },
                 ].map((item) => (
                   <div key={item.key} className="flex items-center justify-between">
                     <Label className="text-xs">{item.label}</Label>
@@ -404,7 +403,7 @@ export default function StudioElaina() {
               <div className="space-y-1 text-[11px] text-muted-foreground">
                 <p>Layer 0 — Gradient background (paling jauh)</p>
                 <p>Layer 1 — Bintang & sparkle</p>
-                <p>Layer 2 — Karakter Elaina</p>
+                <p>Layer 2 — Magic Circle</p>
                 <p>Layer 3 — Teks & badge (paling dekat)</p>
               </div>
             </Card3D>
@@ -439,10 +438,18 @@ export default function StudioElaina() {
                   {card.showSparkles && <Sparkles_ count={20} />}
                 </ParallaxLayer>
 
-                {/* Layer 2 — character illustration (background only) */}
+                {/* Layer 2 — decorative magic circle (replaces character) */}
                 {card.showCharacter && (
-                  <div className="absolute inset-0 flex items-end justify-center pointer-events-none z-0" aria-hidden="true">
-                    <ElainaCharacter className="w-[55%] h-auto drop-shadow-2xl opacity-70" />
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0" aria-hidden="true">
+                    <svg viewBox="0 0 200 200" className="w-[65%] opacity-[0.12]">
+                      <circle cx="100" cy="100" r="90" fill="none" stroke="white" strokeWidth="1.5"/>
+                      <circle cx="100" cy="100" r="75" fill="none" stroke="white" strokeWidth="0.8"/>
+                      <circle cx="100" cy="100" r="60" fill="none" stroke="white" strokeWidth="0.5"/>
+                      {[0,60,120,180,240,300].map((deg) => (
+                        <line key={deg} x1="100" y1="10" x2="100" y2="40" stroke="white" strokeWidth="1" transform={`rotate(${deg} 100 100)`} />
+                      ))}
+                      <polygon points="100,25 108,55 140,55 114,72 122,102 100,85 78,102 86,72 60,55 92,55" fill="white" opacity="0.5"/>
+                    </svg>
                   </div>
                 )}
 
