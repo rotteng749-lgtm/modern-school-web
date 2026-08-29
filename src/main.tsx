@@ -1,6 +1,7 @@
 import '@vly-ai/integrations';
 import { Toaster } from "@/components/ui/sonner";
 import { RequireAuth } from "@/components/RequireAuth";
+import { RequireRole } from "@/components/RequireRole";
 import { CustomCursor } from "@/components/CustomCursor";
 import { VlyToolbar } from "../vly-toolbar-readonly.tsx";
 import { LocalAuthProvider } from "@/hooks/use-local-auth";
@@ -177,7 +178,9 @@ createRoot(document.getElementById("root")!).render(
                 path="/guru"
                 element={
                   <RequireAuth>
-                    <Guru />
+                    <RequireRole allowedRoles={["admin"]}>
+                      <Guru />
+                    </RequireRole>
                   </RequireAuth>
                 }
               />
@@ -185,7 +188,9 @@ createRoot(document.getElementById("root")!).render(
                 path="/murid"
                 element={
                   <RequireAuth>
-                    <Murid />
+                    <RequireRole allowedRoles={["admin"]}>
+                      <Murid />
+                    </RequireRole>
                   </RequireAuth>
                 }
               />
@@ -193,7 +198,9 @@ createRoot(document.getElementById("root")!).render(
                 path="/bank-soal"
                 element={
                   <RequireAuth>
-                    <BankSoal />
+                    <RequireRole allowedRoles={["admin", "guru"]}>
+                      <BankSoal />
+                    </RequireRole>
                   </RequireAuth>
                 }
               />
@@ -201,7 +208,9 @@ createRoot(document.getElementById("root")!).render(
                 path="/studio-elaina"
                 element={
                   <RequireAuth>
-                    <StudioElaina />
+                    <RequireRole allowedRoles={["admin"]}>
+                      <StudioElaina />
+                    </RequireRole>
                   </RequireAuth>
                 }
               />
@@ -209,7 +218,9 @@ createRoot(document.getElementById("root")!).render(
                 path="/pengaturan"
                 element={
                   <RequireAuth>
-                    <Pengaturan />
+                    <RequireRole allowedRoles={["admin"]}>
+                      <Pengaturan />
+                    </RequireRole>
                   </RequireAuth>
                 }
               />
@@ -233,7 +244,9 @@ createRoot(document.getElementById("root")!).render(
                 path="/analytics"
                 element={
                   <RequireAuth>
-                    <AnalyticsPage />
+                    <RequireRole allowedRoles={["admin"]}>
+                      <AnalyticsPage />
+                    </RequireRole>
                   </RequireAuth>
                 }
               />
@@ -241,7 +254,9 @@ createRoot(document.getElementById("root")!).render(
                 path="/inbox"
                 element={
                   <RequireAuth>
-                    <InboxPage />
+                    <RequireRole allowedRoles={["admin"]}>
+                      <InboxPage />
+                    </RequireRole>
                   </RequireAuth>
                 }
               />
@@ -249,7 +264,9 @@ createRoot(document.getElementById("root")!).render(
                 path="/database"
                 element={
                   <RequireAuth>
-                    <DatabasePage />
+                    <RequireRole allowedRoles={["admin"]}>
+                      <DatabasePage />
+                    </RequireRole>
                   </RequireAuth>
                 }
               />

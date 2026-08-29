@@ -38,22 +38,35 @@ import {
   SidebarInset,
 } from "@/components/ui/sidebar";
 
-const NAV_ITEMS = [
-  { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
-  { label: "Ujian / CBT", icon: ClipboardCheck, href: "/ujian" },
-  { label: "Absensi", icon: FileQuestion, href: "/absensi" },
-  { label: "Guru", icon: Users, href: "/guru" },
-  { label: "Murid", icon: GraduationCap, href: "/murid" },
-  { label: "Bank Soal", icon: Trophy, href: "/bank-soal" },
-  { label: "Pengumuman", icon: Megaphone, href: "/pengumuman" },
-  { label: "Gallery", icon: Images, href: "/gallery" },
-  { label: "Analytics", icon: BarChart3, href: "/analytics" },
-  { label: "Inbox", icon: Inbox, href: "/inbox" },
-  { label: "Database", icon: Database, href: "/database" },
-  { label: "Pengaturan", icon: Settings, href: "/pengaturan" },
-  { label: "Studio Elaina", icon: Sparkles, href: "/studio-elaina" },
-  { label: "Profil", icon: UserCircle, href: "/profil" },
-] as const;
+type Role = "admin" | "guru" | "siswa";
+
+interface NavItem {
+  label: string;
+  icon: typeof LayoutDashboard;
+  href: string;
+  roles: Role[];
+}
+
+/* All navigation items with role visibility */
+const NAV_ITEMS: NavItem[] = [
+  // ── All roles ──
+  { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard", roles: ["admin", "guru", "siswa"] },
+  { label: "Ujian / CBT", icon: ClipboardCheck, href: "/ujian", roles: ["admin", "guru", "siswa"] },
+  { label: "Absensi", icon: FileQuestion, href: "/absensi", roles: ["admin", "guru", "siswa"] },
+  { label: "Pengumuman", icon: Megaphone, href: "/pengumuman", roles: ["admin", "guru", "siswa"] },
+  { label: "Gallery", icon: Images, href: "/gallery", roles: ["admin", "guru", "siswa"] },
+  { label: "Profil", icon: UserCircle, href: "/profil", roles: ["admin", "guru", "siswa"] },
+  // ── Admin + Guru ──
+  { label: "Bank Soal", icon: Trophy, href: "/bank-soal", roles: ["admin", "guru"] },
+  // ── Admin only ──
+  { label: "Guru", icon: Users, href: "/guru", roles: ["admin"] },
+  { label: "Murid", icon: GraduationCap, href: "/murid", roles: ["admin"] },
+  { label: "Analytics", icon: BarChart3, href: "/analytics", roles: ["admin"] },
+  { label: "Inbox", icon: Inbox, href: "/inbox", roles: ["admin"] },
+  { label: "Database", icon: Database, href: "/database", roles: ["admin"] },
+  { label: "Pengaturan", icon: Settings, href: "/pengaturan", roles: ["admin"] },
+  { label: "Studio Elaina", icon: Sparkles, href: "/studio-elaina", roles: ["admin"] },
+];
 
 export function DashboardShell({ children }: { children: ReactNode }) {
   const location = useLocation();
@@ -106,7 +119,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         {/* Navigation */}
         <SidebarContent>
           <SidebarMenu>
-            {NAV_ITEMS.map((item) => {
+            {NAV_ITEMS.filter((item) => item.roles.includes(user?.role ?? "admin")).map((item) => {
               const active = location.pathname === item.href;
               return (
                 <SidebarMenuItem key={item.href}>
