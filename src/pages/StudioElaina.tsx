@@ -439,15 +439,11 @@ export default function StudioElaina() {
                   {card.showSparkles && <Sparkles_ count={20} />}
                 </ParallaxLayer>
 
-                {/* Layer 2 — character illustration */}
+                {/* Layer 2 — character illustration (background only) */}
                 {card.showCharacter && (
-                  <ParallaxLayer depth={0.3}>
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <div className="relative w-[60%]" style={{ marginTop: "60px" }}>
-                        <ElainaCharacter className="w-full h-auto drop-shadow-2xl" />
-                      </div>
-                    </div>
-                  </ParallaxLayer>
+                  <div className="absolute inset-0 flex items-end justify-center pointer-events-none z-0" aria-hidden="true">
+                    <ElainaCharacter className="w-[55%] h-auto drop-shadow-2xl opacity-70" />
+                  </div>
                 )}
 
                 {/* Top: name + badge — direct child, no ParallaxLayer */}
