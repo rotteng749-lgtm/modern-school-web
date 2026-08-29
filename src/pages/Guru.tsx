@@ -32,6 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { FileUpload } from "@/components/FileUpload";
 
 /* ═══════════════════════════════════════════
    GURU MANAGEMENT — Modern School Web
@@ -45,6 +46,7 @@ export interface GuruData {
   email: string;
   phone: string;
   status: "aktif" | "nonaktif";
+  photo?: string; // base64 data URL
 }
 
 const STORAGE_KEY = "msw-guru";
@@ -65,6 +67,7 @@ const EMPTY_FORM: Omit<GuruData, "id"> = {
   email: "",
   phone: "",
   status: "aktif",
+  photo: undefined,
 };
 
 export default function Guru() {
@@ -109,7 +112,7 @@ export default function Guru() {
 
   const openEdit = (g: GuruData) => {
     setEditingId(g.id);
-    setForm({ name: g.name, nip: g.nip, subject: g.subject, email: g.email, phone: g.phone, status: g.status });
+    setForm({ name: g.name, nip: g.nip, subject: g.subject, email: g.email, phone: g.phone, status: g.status, photo: g.photo });
     setDialogOpen(true);
   };
 
@@ -202,9 +205,13 @@ export default function Guru() {
                     key={g.id}
                     className="flex items-center gap-3 px-5 py-3.5 hover:bg-accent/30 transition-colors"
                   >
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/12 text-sm font-bold text-primary">
-                      {g.name.split(" ").map((w) => w[0]).join("").slice(0, 2)}
-                    </div>
+                    {g.photo ? (
+                      <img src={g.photo} alt={g.name} className="size-10 shrink-0 rounded-full object-cover" />
+                    ) : (
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/12 text-sm font-bold text-primary">
+                        {g.name.split(" ").map((w) => w[0]).join("").slice(0, 2)}
+                      </div>
+                    )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-semibold truncate">{g.name}</p>
@@ -310,6 +317,23 @@ export default function Guru() {
                   <SelectItem value="nonaktif">Nonaktif</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Foto Profil</Label>
+              {form.photo ? (
+                <div className="flex items-center gap-3">
+                  <img src={form.photo} alt="Preview" className="w-14 h-14 rounded-full object-cover border" />
+                  <Button variant="ghost" size="sm" onClick={() => setForm({ ...form, photo: undefined })}>
+                    Ganti foto
+                  </Button>
+                </div>
+              ) : (
+                <FileUpload
+                  category="guru"
+                  onUploaded={(file) => setForm({ ...form, photo: file.dataUrl })}
+                  maxSizeMB={3}
+                />
+              )}
             </div>
           </div>
           <div className="flex justify-end gap-2 mt-4">

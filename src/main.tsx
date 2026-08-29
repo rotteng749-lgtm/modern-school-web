@@ -27,6 +27,7 @@ const Pengumuman = lazy(() => import("./pages/Pengumuman.tsx"));
 const Gallery = lazy(() => import("./pages/Gallery.tsx"));
 const AnalyticsPage = lazy(() => import("./pages/Analytics.tsx"));
 const InboxPage = lazy(() => import("./pages/Inbox.tsx"));
+const DatabasePage = lazy(() => import("./pages/Database.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 // Simple loading fallback for route transitions
@@ -241,6 +242,14 @@ createRoot(document.getElementById("root")!).render(
                 element={
                   <RequireAuth>
                     <InboxPage />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/database"
+                element={
+                  <RequireAuth>
+                    <DatabasePage />
                   </RequireAuth>
                 }
               />

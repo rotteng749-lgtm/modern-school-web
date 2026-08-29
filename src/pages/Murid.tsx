@@ -32,6 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { FileUpload } from "@/components/FileUpload";
 
 /* ═══════════════════════════════════════════
    MURID MANAGEMENT — Modern School Web
@@ -47,6 +48,7 @@ export interface MuridData {
   phone: string;
   parentName: string;
   status: "aktif" | "lulus" | "keluar";
+  photo?: string; // base64 data URL
 }
 
 const STORAGE_KEY = "msw-murid";
@@ -71,6 +73,7 @@ const EMPTY_FORM: Omit<MuridData, "id"> = {
   phone: "",
   parentName: "",
   status: "aktif",
+  photo: undefined,
 };
 
 const STATUS_STYLE = {
@@ -121,7 +124,7 @@ export default function Murid() {
 
   const openEdit = (m: MuridData) => {
     setEditingId(m.id);
-    setForm({ name: m.name, nisn: m.nisn, className: m.className, gender: m.gender, email: m.email, phone: m.phone, parentName: m.parentName, status: m.status });
+    setForm({ name: m.name, nisn: m.nisn, className: m.className, gender: m.gender, email: m.email, phone: m.phone, parentName: m.parentName, status: m.status, photo: m.photo });
     setDialogOpen(true);
   };
 
@@ -214,9 +217,13 @@ export default function Murid() {
                     key={m.id}
                     className="flex items-center gap-3 px-5 py-3.5 hover:bg-accent/30 transition-colors"
                   >
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/12 text-sm font-bold text-primary">
-                      {m.name.split(" ").map((w) => w[0]).join("").slice(0, 2)}
-                    </div>
+                    {m.photo ? (
+                      <img src={m.photo} alt={m.name} className="size-10 shrink-0 rounded-full object-cover" />
+                    ) : (
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/12 text-sm font-bold text-primary">
+                        {m.name.split(" ").map((w) => w[0]).join("").slice(0, 2)}
+                      </div>
+                    )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-semibold truncate">{m.name}</p>
@@ -348,6 +355,23 @@ export default function Murid() {
                 value={form.parentName}
                 onChange={(e) => setForm({ ...form, parentName: e.target.value })}
               />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Foto Profil</Label>
+              {form.photo ? (
+                <div className="flex items-center gap-3">
+                  <img src={form.photo} alt="Preview" className="w-14 h-14 rounded-full object-cover border" />
+                  <Button variant="ghost" size="sm" onClick={() => setForm({ ...form, photo: undefined })}>
+                    Ganti foto
+                  </Button>
+                </div>
+              ) : (
+                <FileUpload
+                  category="siswa"
+                  onUploaded={(file) => setForm({ ...form, photo: file.dataUrl })}
+                  maxSizeMB={3}
+                />
+              )}
             </div>
           </div>
           <div className="flex justify-end gap-2 mt-4">

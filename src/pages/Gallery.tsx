@@ -30,6 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { FileUpload } from "@/components/FileUpload";
 
 /* ═══════════════════════════════════════════
    GALLERY — Student Projects & Achievements
@@ -230,12 +231,12 @@ export default function Gallery() {
           {filtered.map((item, idx) => (
             <Card3D key={item.id} intensity={4} className="obsidian-sheen overflow-hidden group">
               {/* Image / Placeholder */}
-              <div
-                className={`h-40 bg-gradient-to-br ${
-                  PLACEHOLDER_COLORS[idx % PLACEHOLDER_COLORS.length]
-                } flex items-center justify-center relative`}
-              >
-                <Images className="size-10 text-white/40" />
+              <div className="h-40 bg-muted flex items-center justify-center relative overflow-hidden">
+                {item.imageUrl ? (
+                  <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
+                ) : (
+                  <Images className="size-10 text-muted-foreground/30" />
+                )}
                 <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <Button
                     variant="ghost"
@@ -312,12 +313,22 @@ export default function Gallery() {
               </div>
             </div>
             <div>
-              <Label>URL Gambar (opsional)</Label>
-              <Input
-                value={form.imageUrl}
-                onChange={(e) => setForm((p) => ({ ...p, imageUrl: e.target.value }))}
-                placeholder="https://..."
-              />
+              <Label>Gambar</Label>
+              {form.imageUrl ? (
+                <div className="flex items-center gap-3">
+                  <div className="w-16 h-16 rounded-lg overflow-hidden border">
+                    <img src={form.imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => setForm((p) => ({ ...p, imageUrl: "" }))}>
+                    Ganti gambar
+                  </Button>
+                </div>
+              ) : (
+                <FileUpload
+                  category="gallery"
+                  onUploaded={(file) => setForm((p) => ({ ...p, imageUrl: file.dataUrl }))}
+                />
+              )}
             </div>
             <div>
               <Label>Deskripsi</Label>

@@ -15,6 +15,7 @@ import {
   BarChart3,
   Inbox,
   Settings,
+  Database,
 } from "lucide-react";
 import { YmhLogo } from "@/components/YmhLogo";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,7 @@ const NAV_ITEMS = [
   { label: "Gallery", icon: Images, href: "/gallery" },
   { label: "Analytics", icon: BarChart3, href: "/analytics" },
   { label: "Inbox", icon: Inbox, href: "/inbox" },
+  { label: "Database", icon: Database, href: "/database" },
   { label: "Pengaturan", icon: Settings, href: "/pengaturan" },
   { label: "Studio Elaina", icon: Sparkles, href: "/studio-elaina" },
   { label: "Profil", icon: UserCircle, href: "/profil" },
