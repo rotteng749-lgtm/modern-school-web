@@ -26,6 +26,8 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { Card3D } from "@/components/Card3D";
 import { useLocalAuth } from "@/hooks/use-local-auth";
 import { ChatbotWidget } from "@/components/ChatbotWidget";
+import { YmhLogo } from "@/components/YmhLogo";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { toast } from "sonner";
 
 /* ═══════════════════════════════════════════
@@ -61,6 +63,33 @@ const CAPABILITIES = [
   { icon: Lock, text: "Autentikasi berlapis" },
   { icon: Activity, text: "Monitoring real-time" },
   { icon: Shield, text: "Audit trail lengkap" },
+];
+
+const FAQS = [
+  {
+    q: "Apa itu platform digital Yayasan Mambaul Hasan?",
+    a: "Platform digital ini adalah sistem informasi terpadu untuk mengelola ujian CBT, absensi digital, bank soal, dan data sekolah. Dapat diakses oleh admin, guru, dan siswa.",
+  },
+  {
+    q: "Bagaimana cara mengikuti ujian CBT?",
+    a: "Siswa dapat mengakses ujian CBT melalui menu Ujian/CBT setelah login. Jadwal ujian dan status pengerjaan akan ditampilkan di dashboard masing-masing.",
+  },
+  {
+    q: "Apakah ada fitur absensi digital?",
+    a: "Ya, sistem kami mencatat kehadiran siswa secara digital. Guru dapat memantau rekap kehadiran, dan siswa dapat melihat riwayat absensi mereka sendiri.",
+  },
+  {
+    q: "Bagaimana cara mendaftar sebagai siswa baru (PPDB)?",
+    a: "Pendaftaran siswa baru dapat dilakukan melalui halaman PPDB online. Silakan hubungi bagian admisi yayasan untuk informasi lengkap mengenai jadwal dan persyaratan.",
+  },
+  {
+    q: "Siapa yang dapat mengakses platform ini?",
+    a: "Platform ini dapat diakses oleh administrator sekolah, guru, dan siswa. Setiap pengguna memiliki role dan hak akses yang berbeda sesuai kebutuhan.",
+  },
+  {
+    q: "Apakah data siswa aman di platform ini?",
+    a: "Ya, kami menerapkan autentikasi berlapis dan enkripsi data untuk menjamin keamanan informasi seluruh siswa dan tenaga pendidik.",
+  },
 ];
 
 /* ── Contact Form Component ── */
@@ -151,14 +180,14 @@ export default function Landing() {
       >
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <Link to="/" className="flex items-center gap-2.5">
-            <div className="flex size-9 items-center justify-center rounded-xl bg-primary/15 text-primary">
-              <GraduationCap className="size-5" />
-            </div>
-            <span className="text-xl font-bold tracking-tight">MSW</span>
+            <YmhLogo size={38} />
+            <span className="text-lg font-bold tracking-tight hidden sm:block">Yayasan Mambaul Hasan</span>
           </Link>
 
           <div className="hidden sm:flex items-center gap-6">
             <a href="#fitur" className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">Fitur</a>
+            <a href="#tentang" className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">Tentang</a>
+            <a href="#faq" className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">FAQ</a>
             <a href="#kontak" className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">Kontak</a>
           </div>
           <div className="flex items-center gap-2">
@@ -187,18 +216,18 @@ export default function Landing() {
           >
             <div className="mb-6 inline-flex items-center gap-1.5 rounded-full border bg-card/80 px-3.5 py-1 text-xs font-medium text-muted-foreground backdrop-blur-sm">
               <Terminal className="size-3 text-primary" />
-              School Management System
+              Yayasan Mambaul Hasan — Batur Gading, Probolinggo
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.1]">
-              Modern School
+              Mambaul Hasan
               <br />
-              <span className="text-muted-foreground">Web</span>
+              <span className="text-muted-foreground">Digital Platform</span>
             </h1>
 
             <p className="mx-auto mt-5 max-w-lg text-base sm:text-lg text-muted-foreground leading-relaxed">
               Platform terpusat untuk ujian CBT, absensi digital, dan pengelolaan
-              data sekolah. Dibangun untuk performa dan keandalan.
+              data sekolah Yayasan Mambaul Hasan. Dibangun untuk performa dan keandalan.
             </p>
 
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -280,6 +309,47 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ── TENTANG KAMI ── */}
+      <section id="tentang" className="border-t bg-card/30">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 py-20 sm:py-28">
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            whileInView={{ y: 0, opacity: 1 }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.5 }}
+            className="text-center mb-12"
+          >
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">Tentang Kami</h2>
+            <p className="mt-3 text-muted-foreground max-w-lg mx-auto">
+              Yayasan Mambaul Hasan adalah lembaga pendidikan yang berkomitmen
+              mencetak generasi beriman, cerdas, dan berakhlak mulia.
+            </p>
+          </motion.div>
+
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { value: "1,247", label: "Siswa Aktif" },
+              { value: "89", label: "Guru & Staff" },
+              { value: "36", label: "Kelas" },
+              { value: "15+", label: "Tahun Berdiri" },
+            ].map((stat, i) => (
+              <motion.div
+                key={stat.label}
+                initial={{ y: 20, opacity: 0 }}
+                whileInView={{ y: 0, opacity: 1 }}
+                viewport={{ once: true, margin: "-40px" }}
+                transition={{ duration: 0.4, delay: i * 0.1 }}
+              >
+                <Card3D className="p-6 text-center obsidian-sheen">
+                  <p className="text-3xl font-extrabold text-primary">{stat.value}</p>
+                  <p className="mt-1 text-xs text-muted-foreground font-medium">{stat.label}</p>
+                </Card3D>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── CTA ── */}
       <section className="border-t">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 py-20 sm:py-28 text-center">
@@ -309,6 +379,34 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ── FAQ ── */}
+      <section id="faq" className="border-t">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 py-20 sm:py-28">
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            whileInView={{ y: 0, opacity: 1 }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.5 }}
+            className="text-center mb-12"
+          >
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">Pertanyaan Umum</h2>
+            <p className="mt-3 text-muted-foreground max-w-md mx-auto">
+              Jawaban atas pertanyaan yang sering diajukan.
+            </p>
+          </motion.div>
+          <div className="max-w-2xl mx-auto">
+            <Accordion type="single" collapsible className="space-y-3">
+              {FAQS.map((faq, i) => (
+                <AccordionItem key={i} value={`faq-${i}`} className="border rounded-xl px-4">
+                  <AccordionTrigger className="text-sm font-medium py-4">{faq.q}</AccordionTrigger>
+                  <AccordionContent className="text-sm text-muted-foreground leading-relaxed pb-4">{faq.a}</AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
+        </div>
+      </section>
+
       {/* ── CONTACT FORM ── */}
       <section id="kontak" className="border-t bg-card/30">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 py-20 sm:py-28">
@@ -329,9 +427,9 @@ export default function Landing() {
             {/* Contact Info */}
             <div className="space-y-5">
               {[
-                { icon: MapPin, label: "Alamat", value: "Jl. Pendidikan No. 123, Jakarta Selatan" },
-                { icon: Phone, label: "Telepon", value: "+62 21 5555 0123" },
-                { icon: Mail, label: "Email", value: "admin@msw.sch.id" },
+                { icon: MapPin, label: "Alamat", value: "Batur Gading, Probolinggo, Jawa Timur" },
+                { icon: Phone, label: "Telepon", value: "(0343) xxx-xxxx" },
+                { icon: Mail, label: "Email", value: "admin@mambaulhasan.sch.id" },
               ].map((c) => (
                 <div key={c.label} className="flex items-start gap-3">
                   <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
@@ -355,11 +453,11 @@ export default function Landing() {
       <footer className="border-t bg-card/40">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
           <div className="flex items-center gap-2">
-            <GraduationCap className="size-4 text-primary" />
-            <span className="font-medium">Modern School Web</span>
+            <YmhLogo size={24} />
+            <span className="font-medium">Yayasan Mambaul Hasan</span>
             <span>© {new Date().getFullYear()}</span>
           </div>
-          <p>CBT · Absensi · Bank Soal · Analitik</p>
+          <p>CBT · Absensi · Bank Soal · Batur Gading, Probolinggo</p>
         </div>
       </footer>
 

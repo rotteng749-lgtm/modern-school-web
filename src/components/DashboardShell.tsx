@@ -16,6 +16,7 @@ import {
   Inbox,
   Settings,
 } from "lucide-react";
+import { YmhLogo } from "@/components/YmhLogo";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useLocalAuth } from "@/hooks/use-local-auth";
@@ -60,10 +61,11 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         {/* Brand */}
         <SidebarHeader>
           <Link to="/dashboard" className="flex items-center gap-2.5 px-2 py-1">
-            <div className="flex size-9 items-center justify-center rounded-lg bg-primary/15 text-primary">
-              <GraduationCap className="size-5" />
+            <YmhLogo size={36} />
+            <div className="flex flex-col leading-none">
+              <span className="text-sm font-bold tracking-tight">YMH</span>
+              <span className="text-[9px] text-muted-foreground">Batur Gading</span>
             </div>
-            <span className="text-lg font-bold tracking-tight">MSW</span>
           </Link>
         </SidebarHeader>
 

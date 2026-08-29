@@ -50,7 +50,7 @@ const FAQ_REPLIES: { keywords: string[]; reply: string }[] = [
   },
   {
     keywords: ["halo", "hai", "hello", "selamat", "pagi", "siang", "sore", "malam"],
-    reply: "Halo! Selamat datang di Modern School Web. Saya asisten virtual yang siap membantu pertanyaan seputar sekolah. Ada yang bisa saya bantu?",
+    reply: "Halo! Selamat datang di Yayasan Mambaul Hasan. Saya asisten virtual yang siap membantu pertanyaan seputar sekolah. Ada yang bisa saya bantu?",
   },
   {
     keywords: ["terima kasih", "makasih", "thanks"],
@@ -77,7 +77,7 @@ export function ChatbotWidget() {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       sender: "bot",
-      text: "Halo! Saya asisten virtual Modern School Web. Ada yang bisa saya bantu? Tanyakan tentang jadwal ujian, absensi, bank soal, atau informasi sekolah lainnya.",
+      text: "Halo! Saya asisten virtual Yayasan Mambaul Hasan. Ada yang bisa saya bantu? Tanyakan tentang jadwal ujian, absensi, bank soal, atau informasi sekolah lainnya.",
       time: getNow(),
     },
   ]);
@@ -130,7 +130,7 @@ export function ChatbotWidget() {
               <Bot className="size-5" />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-semibold">Asisten MSW</p>
+              <p className="text-sm font-semibold">Asisten YMH</p>
               <p className="text-[11px] text-muted-foreground">Online — Siap membantu</p>
             </div>
           </div>

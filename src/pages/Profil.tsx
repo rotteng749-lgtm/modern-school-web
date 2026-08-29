@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Card3D } from "@/components/Card3D";
 import { DashboardShell } from "@/components/DashboardShell";
+import { YmhLogo } from "@/components/YmhLogo";
 import { Button } from "@/components/ui/button";
 
 /* ═══════════════════════════════════════════
@@ -18,11 +19,11 @@ import { Button } from "@/components/ui/button";
    ═══════════════════════════════════════════ */
 
 const INFO_ITEMS = [
-  { icon: Building, label: "Nama Institusi", value: "SMA Negeri 1 Scholaris" },
-  { icon: MapPin, label: "Alamat", value: "Jl. Pendidikan No. 123, Jakarta Selatan" },
-  { icon: Phone, label: "Telepon", value: "(021) 555-0123" },
-  { icon: Mail, label: "Email", value: "info@sma1scholaris.id" },
-  { icon: Globe, label: "Website", value: "www.sma1scholaris.id", link: true },
+  { icon: Building, label: "Nama Yayasan", value: "Yayasan Mambaul Hasan" },
+  { icon: MapPin, label: "Alamat", value: "Batur Gading, Probolinggo, Jawa Timur" },
+  { icon: Phone, label: "Telepon", value: "(0343) xxx-xxxx" },
+  { icon: Mail, label: "Email", value: "info@mambaulhasan.sch.id" },
+  { icon: Globe, label: "Website", value: "www.mambaulhasan.sch.id", link: true },
 ];
 
 const STATS = [
@@ -52,13 +53,11 @@ export default function Profil() {
         {/* Identity card */}
         <Card3D intensity={3} className="p-6 obsidian-sheen">
           <div className="flex items-center gap-4">
-            <div className="flex size-16 items-center justify-center rounded-2xl bg-primary/12 text-primary">
-              <GraduationCap className="size-8" />
-            </div>
+            <YmhLogo size={64} />
             <div>
-              <h2 className="text-xl font-bold">SMA Negeri 1 Scholaris</h2>
+              <h2 className="text-xl font-bold">Yayasan Mambaul Hasan</h2>
               <p className="text-sm text-muted-foreground">
-                NPSN: 20201234 · Akreditasi A
+                Batur Gading, Probolinggo · MD-MH / RA-MH / BTR
               </p>
             </div>
           </div>

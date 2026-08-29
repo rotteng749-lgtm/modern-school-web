@@ -35,12 +35,12 @@ interface SchoolSettings {
 }
 
 const DEFAULT_SETTINGS: SchoolSettings = {
-  schoolName: "Modern School Web",
-  address: "Jl. Pendidikan No. 123, Jakarta Selatan",
-  phone: "+62 21 5555 0123",
-  email: "admin@msw.sch.id",
-  website: "https://msw.sch.id",
-  tagline: "Platform terpusat untuk ujian CBT, absensi digital, dan pengelolaan data sekolah.",
+  schoolName: "Yayasan Mambaul Hasan",
+  address: "Batur Gading, Probolinggo, Jawa Timur",
+  phone: "+62 xxx xxxx xxxx",
+  email: "admin@mambaulhasan.sch.id",
+  website: "https://mambaulhasan.sch.id",
+  tagline: "Platform digital terpusat untuk ujian CBT, absensi, dan pengelolaan data sekolah.",
   accentColor: "#0d9488",
 };
 

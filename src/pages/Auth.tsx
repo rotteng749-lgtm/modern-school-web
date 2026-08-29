@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { Suspense, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import logo from "@/assets/logo.svg";
+import { YmhLogo } from "@/components/YmhLogo";
 
 interface AuthProps {
   redirectAfterAuth?: string;
@@ -66,7 +66,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
     <div className="min-h-screen flex flex-col bg-background">
       {/* Top bar */}
       <nav className="sticky top-0 z-50 flex h-14 items-center justify-between border-b bg-background/70 backdrop-blur-xl px-4">
-        <span className="text-sm font-semibold text-muted-foreground">MSW</span>
+        <span className="text-sm font-semibold text-muted-foreground">YMH — Yayasan Mambaul Hasan</span>
         <ThemeToggle />
       </nav>
 
@@ -74,14 +74,9 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
         <Card className="w-full max-w-sm pb-0 border shadow-md obsidian-sheen">
           <CardHeader className="text-center">
             <div className="flex justify-center">
-              <img
-                src={logo}
-                alt="Logo"
-                width={56}
-                height={56}
-                className="rounded-lg mb-3 mt-2 cursor-pointer"
-                onClick={() => navigate("/")}
-              />
+              <div className="mb-3 mt-2 cursor-pointer" onClick={() => navigate("/")}>
+                <YmhLogo size={60} />
+              </div>
             </div>
             <CardTitle className="text-xl">Masuk</CardTitle>
             <CardDescription>
@@ -166,7 +161,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
           </div>
 
           <div className="py-4 px-6 text-xs text-center text-muted-foreground bg-muted border-t rounded-b-lg">
-            Modern School Web
+            Yayasan Mambaul Hasan · Batur Gading, Probolinggo
           </div>
         </Card>
       </div>
