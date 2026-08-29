@@ -450,54 +450,51 @@ export default function StudioElaina() {
                   </ParallaxLayer>
                 )}
 
-                {/* Layer 3 — text & credentials overlay */}
-                <ParallaxLayer depth={0.8}>
-                  {/* Top: name + badge */}
-                  <div className="absolute inset-x-0 top-0 p-6 z-10">
-                    <div className="flex items-center gap-3">
-                      <div className="flex size-14 items-center justify-center rounded-2xl text-xl font-bold shadow-lg"
-                        style={{ background: "rgba(255,255,255,0.2)", backdropFilter: "blur(8px)" }}
+                {/* Top: name + badge — direct child, no ParallaxLayer */}
+                <div className="absolute inset-x-0 top-0 p-6 z-20">
+                  <div className="flex items-center gap-3">
+                    <div className="flex size-14 items-center justify-center rounded-2xl text-xl font-bold shadow-lg"
+                      style={{ background: "rgba(255,255,255,0.2)", backdropFilter: "blur(8px)" }}
+                    >
+                      {card.name.split(" ").map((w) => w[0]).join("").slice(0, 2)}
+                    </div>
+                    <div>
+                      <p className="text-xl font-bold tracking-tight drop-shadow-sm">{card.name}</p>
+                      <span className="inline-block mt-1 rounded-full px-3 py-0.5 text-xs font-medium"
+                        style={{ background: "rgba(255,255,255,0.2)", backdropFilter: "blur(4px)" }}
                       >
-                        {card.name.split(" ").map((w) => w[0]).join("").slice(0, 2)}
-                      </div>
-                      <div>
-                        <p className="text-xl font-bold tracking-tight drop-shadow-sm">{card.name}</p>
-                        <span className="inline-block mt-1 rounded-full px-3 py-0.5 text-xs font-medium"
-                          style={{ background: "rgba(255,255,255,0.2)", backdropFilter: "blur(4px)" }}
-                        >
-                          {card.badge}
-                        </span>
-                      </div>
+                        {card.badge}
+                      </span>
                     </div>
                   </div>
+                </div>
 
-                  {/* Bottom: credentials + subtitle + school name */}
-                  <div className="absolute inset-x-0 bottom-0 p-5 z-10">
-                    <div className="h-px bg-white/20 mb-3" />
-                    {card.showCredentials && card.username && (
-                      <div className="rounded-xl p-3 mb-3" style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(6px)" }}>
-                        <div className="flex items-center gap-1.5 text-[10px] text-white/60 mb-2 uppercase tracking-wider font-medium">
-                          <KeyRound className="size-2.5" /> Akun Login
+                {/* Bottom: credentials + subtitle + school name — direct child, no ParallaxLayer */}
+                <div className="absolute inset-x-0 bottom-0 p-5 z-20">
+                  <div className="h-px bg-white/20 mb-3" />
+                  {card.showCredentials && card.username && (
+                    <div className="rounded-xl p-3 mb-3" style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(6px)" }}>
+                      <div className="flex items-center gap-1.5 text-[10px] text-white/60 mb-2 uppercase tracking-wider font-medium">
+                        <KeyRound className="size-2.5" /> Akun Login
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <User className="size-3 text-white/50" />
+                          <span className="text-sm font-mono font-medium">{card.username}</span>
                         </div>
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <User className="size-3 text-white/50" />
-                            <span className="text-sm font-mono font-medium">{card.username}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <KeyRound className="size-3 text-white/50" />
-                            <span className="text-sm font-mono font-medium">{card.password}</span>
-                          </div>
+                        <div className="flex items-center gap-2">
+                          <KeyRound className="size-3 text-white/50" />
+                          <span className="text-sm font-mono font-medium">{card.password}</span>
                         </div>
                       </div>
-                    )}
-                    <p className="text-sm text-white/80 drop-shadow-sm">{card.subtitle}</p>
-                    <div className="mt-1.5 flex items-center gap-2 text-[11px] text-white/50">
-                      <Star className="size-3 fill-current" />
-                      <span>Yayasan Mambaul Hasan</span>
                     </div>
+                  )}
+                  <p className="text-sm text-white/80 drop-shadow-sm">{card.subtitle}</p>
+                  <div className="mt-1.5 flex items-center gap-2 text-[11px] text-white/50">
+                    <Star className="size-3 fill-current" />
+                    <span>Yayasan Mambaul Hasan</span>
                   </div>
-                </ParallaxLayer>
+                </div>
 
                 {/* Corner glow */}
                 <div className="absolute -bottom-12 -right-12 size-40 rounded-full opacity-20 blur-3xl pointer-events-none"
