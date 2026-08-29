@@ -31,6 +31,7 @@ import {
   Users,
   Search,
 } from "lucide-react";
+import { MAGIC_CIRCLES } from "@/components/MagicCircles";
 import { toast } from "sonner";
 
 /* ═══════════════════════════════════════════
@@ -59,6 +60,7 @@ interface CardData {
   password: string;
   showCredentials: boolean;
   gradientIdx: number;
+  circleIdx: number;
   showStars: boolean;
   showSparkles: boolean;
   showCharacter: boolean;
@@ -73,6 +75,7 @@ const DEFAULT: CardData = {
   password: "Elaina@2026",
   showCredentials: true,
   gradientIdx: 0,
+  circleIdx: 0,
   showStars: true,
   showSparkles: true,
   showCharacter: true,
@@ -385,6 +388,24 @@ export default function StudioElaina() {
                     </Button>
                   </div>
                 ))}
+                {card.showCharacter && (
+                  <div className="space-y-2">
+                    <Label className="text-[10px] text-muted-foreground">Style ({MAGIC_CIRCLES[card.circleIdx].name})</Label>
+                    <div className="grid grid-cols-5 gap-1.5">
+                      {MAGIC_CIRCLES.map((c, i) => (
+                        <button key={i} onClick={() => setCard({ ...card, circleIdx: i })}
+                          className={`relative h-9 rounded-md border transition-all ${card.circleIdx === i ? "border-primary ring-1 ring-primary bg-primary/10 scale-105" : "border-border hover:border-primary/50 hover:scale-105"}`}
+                          title={c.name}
+                        >
+                          <div className="absolute inset-0 flex items-center justify-center opacity-60">
+                            <svg viewBox="0 0 200 200" className="w-5 h-5"><circle cx="100" cy="100" r="85" fill="none" stroke="currentColor" strokeWidth="3"/><circle cx="100" cy="100" r="50" fill="none" stroke="currentColor" strokeWidth="2"/></svg>
+                          </div>
+                          {card.circleIdx === i && <Check className="absolute -top-1 -right-1 size-3 text-primary bg-background rounded-full" />}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div className="space-y-1.5">
                   <Label className="text-xs">Intensitas 3D: {card.tilt}°</Label>
                   <input type="range" min={0} max={25} value={card.tilt}
@@ -438,18 +459,10 @@ export default function StudioElaina() {
                   {card.showSparkles && <Sparkles_ count={20} />}
                 </ParallaxLayer>
 
-                {/* Layer 2 — decorative magic circle (replaces character) */}
+                {/* Layer 2 — selected magic circle */}
                 {card.showCharacter && (
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0" aria-hidden="true">
-                    <svg viewBox="0 0 200 200" className="w-[65%] opacity-[0.12]">
-                      <circle cx="100" cy="100" r="90" fill="none" stroke="white" strokeWidth="1.5"/>
-                      <circle cx="100" cy="100" r="75" fill="none" stroke="white" strokeWidth="0.8"/>
-                      <circle cx="100" cy="100" r="60" fill="none" stroke="white" strokeWidth="0.5"/>
-                      {[0,60,120,180,240,300].map((deg) => (
-                        <line key={deg} x1="100" y1="10" x2="100" y2="40" stroke="white" strokeWidth="1" transform={`rotate(${deg} 100 100)`} />
-                      ))}
-                      <polygon points="100,25 108,55 140,55 114,72 122,102 100,85 78,102 86,72 60,55 92,55" fill="white" opacity="0.5"/>
-                    </svg>
+                    {MAGIC_CIRCLES[card.circleIdx]?.render()}
                   </div>
                 )}
 
