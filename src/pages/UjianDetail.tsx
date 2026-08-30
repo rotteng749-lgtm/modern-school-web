@@ -69,7 +69,11 @@ export default function UjianDetail() {
             if (found.questionIds && found.questionIds.length > 0) {
               selected = allSoal.filter((s) => found.questionIds!.includes(s.id));
             } else {
-              selected = allSoal.filter((s) => s.subject === found.subject);
+              selected = allSoal.filter((s) => {
+                const matchSubject = s.subject === found.subject;
+                const matchKelas = !found.className || !s.className || s.className === found.className;
+                return matchSubject && matchKelas;
+              });
             }
             setSoalList(selected);
           }

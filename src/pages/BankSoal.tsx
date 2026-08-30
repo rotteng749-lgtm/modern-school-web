@@ -50,6 +50,7 @@ export interface SoalItem {
   options: string[];
   answer: string;
   subject: string;
+  className: string; // kelas tujuan
   type: "Pilihan Ganda" | "Uraian";
   difficulty: "Mudah" | "Sedang" | "Sulit";
   createdAt: string;
@@ -61,44 +62,16 @@ import { getSubjects, initSubjects } from "@/lib/subjects-store";
 
 let SUBJECTS = getSubjects();
 
-const INITIAL_SOAL: SoalItem[] = [
-  {
-    id: "1",
-    question: "Tentukan nilai x dari persamaan 2x² − 8x + 6 = 0",
-    options: ["x = 1 atau x = 3", "x = 2 atau x = 4", "x = -1 atau x = 3", "x = 1 atau x = -3"],
-    answer: "x = 1 atau x = 3",
-    subject: "Matematika",
-    type: "Pilihan Ganda",
-    difficulty: "Sedang",
-    createdAt: new Date(Date.now() - 2 * 86400000).toISOString(),
-  },
-  {
-    id: "2",
-    question: "Analisis teks argumentasi berikut dan tentukan thesis statement-nya",
-    options: [],
-    answer: "",
-    subject: "Bahasa Indonesia",
-    type: "Uraian",
-    difficulty: "Sulit",
-    createdAt: new Date(Date.now() - 3 * 86400000).toISOString(),
-  },
-  {
-    id: "3",
-    question: "Sebutkan 3 hukum Newton dan berikan contoh penerapannya dalam kehidupan sehari-hari",
-    options: [],
-    answer: "",
-    subject: "Fisika",
-    type: "Uraian",
-    difficulty: "Sedang",
-    createdAt: new Date(Date.now() - 5 * 86400000).toISOString(),
-  },
-];
+const KELAS = ["MI Kelas 1", "MI Kelas 2", "MI Kelas 3", "MI Kelas 4", "MI Kelas 5", "MI Kelas 6"];
+
+const INITIAL_SOAL: SoalItem[] = [];
 
 const EMPTY_FORM = {
   question: "",
   options: ["", "", "", ""],
   answer: "",
   subject: "",
+  className: "",
   type: "Pilihan Ganda" as "Pilihan Ganda" | "Uraian",
   difficulty: "Sedang" as "Mudah" | "Sedang" | "Sulit",
 };
@@ -123,6 +96,7 @@ export default function BankSoal() {
   const [soalList, setSoalList] = useState<SoalItem[]>([]);
   const [search, setSearch] = useState("");
   const [filterSubject, setFilterSubject] = useState("all");
+  const [filterKelas, setFilterKelas] = useState("all");
 
   /* ── Add/Edit dialog ── */
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -147,6 +121,7 @@ export default function BankSoal() {
   const [parsedSoal, setParsedSoal] = useState<ParsedSoal[]>([]);
   const [selectedForImport, setSelectedForImport] = useState<Set<number>>(new Set());
   const [importSubject, setImportSubject] = useState("Matematika");
+  const [importClassName, setImportClassName] = useState("");
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{ format: string; detectedType: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -180,7 +155,8 @@ export default function BankSoal() {
       s.question.toLowerCase().includes(search.toLowerCase()) ||
       s.subject.toLowerCase().includes(search.toLowerCase());
     const matchSubject = filterSubject === "all" || s.subject === filterSubject;
-    return matchSearch && matchSubject;
+    const matchKelas = filterKelas === "all" || s.className === filterKelas;
+    return matchSearch && matchSubject && matchKelas;
   });
 
   /* ── Category counts ── */
@@ -206,6 +182,7 @@ export default function BankSoal() {
       options: s.options.length >= 4 ? s.options : [...s.options, "", "", "", ""].slice(0, 4),
       answer: s.answer,
       subject: s.subject,
+      className: s.className || "",
       type: s.type,
       difficulty: s.difficulty,
     });
@@ -236,6 +213,7 @@ export default function BankSoal() {
         options: cleanedOptions,
         answer: form.answer,
         subject: form.subject,
+        className: form.className,
         type: form.type,
         difficulty: form.difficulty,
         createdAt: new Date().toISOString(),
@@ -314,17 +292,18 @@ export default function BankSoal() {
       setImportProgress(Math.round((imported / selected.length) * 100));
 
       if (imported >= selected.length) {
-        clearInterval(interval);
-
-        const newSoalItems: SoalItem[] = selected.map((s, i) => ({
+        clearInterval(interval);        const newSoalItems: SoalItem[] = selected.map((s, i) => ({
           id: (Date.now() + i).toString(),
           question: s.question,
           options: s.options,
           answer: s.answer,
           subject: importSubject,
+          className: importClassName,
           type: s.type,
           difficulty: s.difficulty,
           createdAt: new Date().toISOString(),
+
+
         }));
 
         save([...newSoalItems, ...soalList]);
@@ -432,6 +411,17 @@ export default function BankSoal() {
               ))}
             </SelectContent>
           </Select>
+          <Select value={filterKelas} onValueChange={setFilterKelas}>
+            <SelectTrigger className="w-36">
+              <SelectValue placeholder="Kelas" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua Kelas</SelectItem>
+              {KELAS.map((k) => (
+                <SelectItem key={k} value={k}>{k}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Category cards */}
@@ -453,12 +443,25 @@ export default function BankSoal() {
                   <div className="flex size-9 items-center justify-center rounded-lg bg-primary/12 text-primary">
                     <Tag className="size-4" />
                   </div>
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold">{name}</p>
                     <p className="text-[11px] text-muted-foreground">
                       {categoryCounts[name]} soal
                     </p>
                   </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (confirm(`Hapus semua soal ${name}?`)) {
+                        save(soalList.filter((s) => s.subject !== name));
+                        toast.success(`Semua soal ${name} berhasil dihapus.`);
+                      }
+                    }}
+                    className="shrink-0 p-1.5 rounded-md text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100"
+                    title={`Hapus semua soal ${name}`}
+                  >
+                    <Trash2 className="size-3.5" />
+                  </button>
                 </div>
               </Card3D>
             ))}
@@ -532,6 +535,11 @@ export default function BankSoal() {
                       <Badge variant="secondary" className="text-[10px]">
                         {s.subject}
                       </Badge>
+                      {s.className && (
+                        <Badge variant="outline" className="text-[10px]">
+                          {s.className}
+                        </Badge>
+                      )}
                       <Badge variant="outline" className="text-[10px]">
                         {s.type}
                       </Badge>
@@ -566,8 +574,44 @@ export default function BankSoal() {
           </DialogHeader>
 
           <div className="space-y-4 mt-2">
-            {/* Subject + Type + Difficulty */}
-            <div className="grid grid-cols-3 gap-3">
+            {/* Subject + Kelas */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Mata Pelajaran *</Label>
+                <Select
+                  value={form.subject}
+                  onValueChange={(v) => setForm({ ...form, subject: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SUBJECTS.map((s) => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Kelas</Label>
+                <Select
+                  value={form.className}
+                  onValueChange={(v) => setForm({ ...form, className: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih kelas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Semua Kelas</SelectItem>
+                    {KELAS.map((k) => (
+                      <SelectItem key={k} value={k}>{k}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            {/* Type + Difficulty */}
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Mata Pelajaran *</Label>
                 <Select
@@ -768,6 +812,20 @@ export default function BankSoal() {
                     <SelectContent>
                       {SUBJECTS.map((s) => (
                         <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex-1 space-y-1.5">
+                  <Label className="text-xs">Kelas Tujuan</Label>
+                  <Select value={importClassName} onValueChange={setImportClassName}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih kelas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Semua Kelas</SelectItem>
+                      {KELAS.map((k) => (
+                        <SelectItem key={k} value={k}>{k}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -1020,6 +1078,7 @@ export default function BankSoal() {
                     options: cleaned,
                     answer: batchAnswer,
                     subject: batchSubject,
+                    className: "",
                     type: batchType,
                     difficulty: batchDifficulty,
                     createdAt: new Date().toISOString(),
