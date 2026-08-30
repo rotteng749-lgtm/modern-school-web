@@ -100,6 +100,7 @@ export default function Ujian() {
   const [subjects, setSubjects] = useState<string[]>([]);
   const [bankSoal, setBankSoal] = useState<SoalItem[]>([]);
   const [selectedSoal, setSelectedSoal] = useState<Set<string>>(new Set());
+  const [expandedSoalGroup, setExpandedSoalGroup] = useState<string | null>(null);
 
   useEffect(() => {
     initSubjects();
@@ -464,31 +465,88 @@ export default function Ujian() {
                   </p>
                 ) : (
                   <>
-                    <div className="max-h-48 overflow-y-auto space-y-1">
-                      {availableSoal.map((s, i) => (
-                        <label
-                          key={s.id}
-                          className={`flex items-start gap-2 p-2 rounded cursor-pointer text-xs transition-colors ${
-                            selectedSoal.has(s.id) ? "bg-primary/10" : "hover:bg-muted"
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selectedSoal.has(s.id)}
-                            onChange={() => toggleSoal(s.id)}
-                            className="mt-0.5 accent-primary"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <p className="truncate">{i + 1}. {s.question}</p>
-                            <div className="flex items-center gap-2 mt-0.5">
-                              <Badge variant="outline" className="text-[9px]">{s.type}</Badge>
-                              <Badge variant="outline" className="text-[9px]">{s.difficulty}</Badge>
-                            </div>
-                          </div>
-                        </label>
-                      ))}
-                    </div>
-                    <p className="text-[10px] text-muted-foreground text-right">
+                    {(() => {
+                      // Group by kelas
+                      const groups: Record<string, SoalItem[]> = {};
+                      availableSoal.forEach((s) => {
+                        const key = s.className || "Semua Kelas";
+                        if (!groups[key]) groups[key] = [];
+                        groups[key].push(s);
+                      });
+
+                      return (
+                        <div className="max-h-56 overflow-y-auto space-y-1">
+                          {Object.entries(groups).map(([kelas, items]) => {
+                            const groupKey = `${form.subject}|${kelas}`;
+                            const isOpen = expandedSoalGroup === groupKey;
+                            const allSelected = items.every((s) => selectedSoal.has(s.id));
+                            const someSelected = items.some((s) => selectedSoal.has(s.id));
+
+                            return (
+                              <div key={kelas} className="border rounded-lg overflow-hidden">
+                                {/* Group header */}
+                                <div
+                                  className="flex items-center gap-2 px-2.5 py-2 cursor-pointer hover:bg-muted/50 transition-colors"
+                                  onClick={() => setExpandedSoalGroup(isOpen ? null : groupKey)}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={allSelected}
+                                    ref={(el) => { if (el) el.indeterminate = someSelected && !allSelected; }}
+                                    onChange={() => {
+                                      const next = new Set(selectedSoal);
+                                      items.forEach((s) => {
+                                        if (allSelected) next.delete(s.id);
+                                        else next.add(s.id);
+                                      });
+                                      setSelectedSoal(next);
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="accent-primary"
+                                  />
+                                  <span className="text-xs font-semibold flex-1">{kelas}</span>
+                                  <Badge variant="secondary" className="text-[9px]">
+                                    {items.filter((s) => selectedSoal.has(s.id)).length}/{items.length}
+                                  </Badge>
+                                  <span className="text-[10px] text-muted-foreground">
+                                    {isOpen ? "▾" : "▸"}
+                                  </span>
+                                </div>
+
+                                {/* Questions inside group */}
+                                {isOpen && (
+                                  <div className="border-t divide-y">
+                                    {items.map((s, i) => (
+                                      <label
+                                        key={s.id}
+                                        className={`flex items-start gap-2 px-3 py-1.5 cursor-pointer text-xs transition-colors ${
+                                          selectedSoal.has(s.id) ? "bg-primary/10" : "hover:bg-muted/50"
+                                        }`}
+                                      >
+                                        <input
+                                          type="checkbox"
+                                          checked={selectedSoal.has(s.id)}
+                                          onChange={() => toggleSoal(s.id)}
+                                          className="mt-0.5 accent-primary"
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                          <p className="truncate">{i + 1}. {s.question}</p>
+                                          <div className="flex items-center gap-1.5 mt-0.5">
+                                            <Badge variant="outline" className="text-[9px]">{s.type}</Badge>
+                                            <Badge variant="outline" className="text-[9px]">{s.difficulty}</Badge>
+                                          </div>
+                                        </div>
+                                      </label>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
+                    <p className="text-[10px] text-muted-foreground text-right mt-1">
                       {selectedSoal.size} soal dipilih
                     </p>
                   </>

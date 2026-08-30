@@ -699,7 +699,7 @@ export default function UjianDetail() {
               <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                 Navigasi Soal
               </p>
-              <div className="grid grid-cols-5 gap-1.5">
+              <div className="grid grid-cols-6 gap-1">
                 {soalList.map((s, i) => {
                   const isAnswered = !!answers[s.id];
                   const isFlaggedItem = flagged.has(s.id);
@@ -709,9 +709,9 @@ export default function UjianDetail() {
                     <button
                       key={s.id}
                       onClick={() => setCurrentIdx(i)}
-                      className={`aspect-square rounded-md text-[11px] font-medium transition-colors relative ${
+                      className={`aspect-square rounded text-[10px] font-medium transition-colors relative ${
                         isCurrent
-                          ? "bg-primary text-primary-foreground ring-2 ring-primary/50"
+                          ? "bg-primary text-primary-foreground ring-1 ring-primary/50"
                           : isAnswered
                           ? "bg-emerald-500/20 text-emerald-600 hover:bg-emerald-500/30"
                           : "bg-muted text-muted-foreground hover:bg-muted/80"
@@ -719,7 +719,7 @@ export default function UjianDetail() {
                     >
                       {i + 1}
                       {isFlaggedItem && (
-                        <span className="absolute -top-1 -right-1 size-1.5 bg-amber-500 rounded-full" />
+                        <span className="absolute -top-0.5 -right-0.5 size-1 bg-amber-500 rounded-full" />
                       )}
                     </button>
                   );
