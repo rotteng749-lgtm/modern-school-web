@@ -330,14 +330,12 @@ export default function Ujian() {
                     </div>
 
                     <div className="flex items-center gap-1 shrink-0">
-                      {isActive && (
-                        <Link to={`/ujian/${ujian.id}`}>
-                          <Button size="sm" className="rounded-full text-xs">
-                            <PlayCircle className="size-3.5" />
-                            Mulai CBT
-                          </Button>
-                        </Link>
-                      )}
+                      <Link to={`/ujian/${ujian.id}`}>
+                        <Button size="sm" className="rounded-full text-xs">
+                          <PlayCircle className="size-3.5" />
+                          {ujian.status === "finished" ? "Ulangi" : "Mulai CBT"}
+                        </Button>
+                      </Link>
                       <Button variant="ghost" size="icon-sm" onClick={() => openEdit(ujian)} title="Edit">
                         <Edit className="size-3.5" />
                       </Button>

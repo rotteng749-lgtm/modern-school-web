@@ -2,6 +2,7 @@
    SOAL IMPORT — Auto-detect file format
    Supports: .docx (mammoth), .txt, .csv
    Handles: A-E options, answer key tables, essay, pembahasan
+   Detects: Arabic/RTL text, images, rich content
    ═══════════════════════════════════════════ */
 
 import mammoth from "mammoth";
@@ -12,6 +13,8 @@ export interface ParsedSoal {
   answer: string;       // jawaban benar
   type: "Pilihan Ganda" | "Uraian";
   difficulty: "Mudah" | "Sedang" | "Sulit";
+  hasArabic?: boolean;  // detected Arabic/RTL text
+  hasImage?: boolean;   // detected image reference
 }
 
 /* ── Detect file type from extension ── */
@@ -21,6 +24,18 @@ function getFileType(file: File): "docx" | "txt" | "csv" | "unknown" {
   if (name.endsWith(".txt") || name.endsWith(".text")) return "txt";
   if (name.endsWith(".csv") || name.endsWith(".tsv")) return "csv";
   return "unknown";
+}
+
+/* ── Detect Arabic/RTL characters ── */
+function hasArabicText(text: string): boolean {
+  // Arabic Unicode range: U+0600–U+06FF (Arabic), U+0750–U+077F, U+FB50–U+FDFF, U+FE70–U+FEFF
+  return /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(text);
+}
+
+/* ── Detect image references ── */
+function hasImageRef(text: string): boolean {
+  // Check for [gambar], [image], <img, base64 data, or common image markers
+  return /\[gambar[^\]]*\]|\[image[^\]]*\]|\[img[^\]]*\]|<img\s|data:image|\.png|\.jpg|\.jpeg|\.gif|\.svg|\.webp/i.test(text);
 }
 
 /* ═══════════════════════════════════════════
@@ -141,9 +156,9 @@ function extractTableKeys(text: string, key: Record<string, string>) {
   }
 }
 
-/** Strategy 2: "Soal 1 [Kunci: B]:" from pembahasan */
+/** Strategy 2: "Soal 1 [Kunci: B]: " from pembahasan */
 function extractPembahasanKeys(text: string, key: Record<string, string>) {
-  // Pattern: "Soal 1 [Kunci: B]:" or "Soal 1 [Kunci:B]"
+  // Pattern: "Soal 1 [Kunci: B]: " or "Soal 1 [Kunci:B]"
   const soalKunci = text.matchAll(/Soal\s+(\d+)\s*\[Kunci:\s*([A-Ea-e])\]/gi);
   for (const m of soalKunci) {
     const num = m[1];
@@ -205,15 +220,15 @@ function extractSection(text: string, startPattern: string, endPattern: string):
 /** Split section into individual question blocks */
 function splitQuestions(section: string): string[] {
   return section
-    .split(/\n\s*(?=\d+[\.)]\s+)/)
+    .split(/\n\s*(?=\d+[.)]\s+)/)
     .map((b) => b.trim())
-    .filter((b) => b.length > 10 && /\d+[\.]/.test(b));
+    .filter((b) => b.length > 10 && /\d+[\./]/.test(b));
 }
 
 /** Parse a single PG block (A-E options) */
 function parsePGBlock(block: string): ParsedSoal | null {
   // Remove leading number
-  let text = block.replace(/^\s*\d+[\.)]\s*/, "").trim();
+  let text = block.replace(/^\s*\d+[.)]\s*/, "").trim();
 
   // Extract options: A. ... through E. ...
   const optionRegex = /\n\s*([A-E])\.\s+/g;
@@ -228,7 +243,7 @@ function parsePGBlock(block: string): ParsedSoal | null {
 
   // Extract question text (before first option)
   const questionEnd = optionPositions[0].start;
-  const question = text.slice(0, questionEnd).replace(/\n/g, " ").trim();
+  let question = text.slice(0, questionEnd).replace(/\n/g, " ").trim();
 
   // Extract each option text
   const options: string[] = [];
@@ -241,24 +256,36 @@ function parsePGBlock(block: string): ParsedSoal | null {
 
   if (question.length < 5 || options.length < 2) return null;
 
+  // Detect content types
+  const fullText = question + " " + options.join(" ");
+  const arabic = hasArabicText(fullText);
+  const image = hasImageRef(fullText);
+
+  // Clean image references for display
+  if (image) {
+    question = question.replace(/\[gambar[^\]]*\]/gi, "[gambar]").replace(/\[image[^\]]*\]/gi, "[gambar]");
+  }
+
   return {
     question,
     options,
     answer: "",
     type: "Pilihan Ganda",
     difficulty: detectDifficulty(question, options),
+    hasArabic: arabic,
+    hasImage: image,
   };
 }
 
 /** Extract question number from block */
 function extractQuestionNumber(block: string): string | null {
-  const m = block.match(/^\s*(\d+)[\.]/);
+  const m = block.match(/^\s*(\d+)[\.\/]/);
   return m ? m[1] : null;
 }
 
 /** Parse a single essay block */
 function parseEssayBlock(block: string): ParsedSoal | null {
-  let text = block.replace(/^\s*\d+[\.)]\s*/, "").trim();
+  let text = block.replace(/^\s*\d+[.)]\s*/, "").trim();
 
   // Remove "Jawab:" and following dots/underscores
   text = text.replace(/Jawab:\s*[.\s_]*/g, "").trim();
@@ -272,19 +299,30 @@ function parseEssayBlock(block: string): ParsedSoal | null {
 
   if (text.length < 5) return null;
 
+  // Detect content types
+  const arabic = hasArabicText(text);
+  const image = hasImageRef(text);
+
+  // Clean image references
+  if (image) {
+    text = text.replace(/\[gambar[^\]]*\]/gi, "[gambar]").replace(/\[image[^\]]*\]/gi, "[gambar]");
+  }
+
   return {
     question: text,
     options: [],
     answer: "",
     type: "Uraian",
     difficulty: detectDifficulty(text, []),
+    hasArabic: arabic,
+    hasImage: image,
   };
 }
 
 /** Generic fallback parser — no section headers */
 function parseGenericText(text: string, answerKey: Record<string, string>): ParsedSoal[] {
   const blocks = text
-    .split(/\n\s*(?=\d+[\.)]\s+)/)
+    .split(/\n\s*(?=\d+[.)]\s+)/)
     .map((b) => b.trim())
     .filter((b) => b.length > 10);
 
@@ -302,17 +340,23 @@ function parseGenericText(text: string, answerKey: Record<string, string>): Pars
         questions.push(q);
       }
     } else {
-      let t = block.replace(/^\s*\d+[\.)]\s*/, "").trim();
+      let t = block.replace(/^\s*\d+[.)]\s*/, "").trim();
       t = t.replace(/Jawab:\s*[.\s_]*/g, "").trim();
       t = t.replace(/[._]{5,}/g, "").trim();
       if (t.length >= 5) {
-        const num = extractQuestionNumber(block);
+        const arabic = hasArabicText(t);
+        const image = hasImageRef(t);
+        if (image) {
+          t = t.replace(/\[gambar[^\]]*\]/gi, "[gambar]").replace(/\[image[^\]]*\]/gi, "[gambar]");
+        }
         questions.push({
           question: t,
           options: [],
           answer: "",
           type: "Uraian",
           difficulty: detectDifficulty(t, []),
+          hasArabic: arabic,
+          hasImage: image,
         });
       }
     }
@@ -337,8 +381,53 @@ function detectDifficulty(question: string, options: string[]): "Mudah" | "Sedan
 
 async function parseDocx(file: File): Promise<ParsedSoal[]> {
   const arrayBuffer = await file.arrayBuffer();
+
+  // Use mammoth with image handling
   const result = await mammoth.extractRawText({ arrayBuffer });
-  return parseTextContent(result.value);
+
+  let text = result.value;
+
+  // Also try to detect images from the raw HTML output
+  try {
+    const htmlResult = await mammoth.convertToHtml({ arrayBuffer });
+    const html = htmlResult.value;
+
+    // Find image tags and add markers to the text
+    const imgMatches = html.matchAll(/<img[^>]*>/gi);
+    const imageMarkers: string[] = [];
+    for (const m of imgMatches) {
+      imageMarkers.push("[gambar]");
+    }
+
+    // If raw text has fewer content markers than images, append image info
+    if (imageMarkers.length > 0 && !text.includes("[gambar]")) {
+      // Find where images likely belong (after question text)
+      const lines = text.split("\n");
+      let imgIdx = 0;
+      const enrichedLines: string[] = [];
+
+      for (const line of lines) {
+        enrichedLines.push(line);
+        // After a question or option, insert image marker if needed
+        if (imgIdx < imageMarkers.length && /\d+[.)]\s/.test(line)) {
+          enrichedLines.push(imageMarkers[imgIdx]);
+          imgIdx++;
+        }
+      }
+
+      // Append any remaining images
+      while (imgIdx < imageMarkers.length) {
+        enrichedLines.push(imageMarkers[imgIdx]);
+        imgIdx++;
+      }
+
+      text = enrichedLines.join("\n");
+    }
+  } catch {
+    // HTML conversion failed, proceed with raw text only
+  }
+
+  return parseTextContent(text);
 }
 
 async function parseTxt(file: File): Promise<ParsedSoal[]> {
@@ -378,12 +467,17 @@ async function parseCsv(file: File): Promise<ParsedSoal[]> {
     const options = isPG ? optionFields.map((f) => f.trim()) : [];
     const answer = isPG && fields.length > 6 ? fields[6]?.trim() : "";
 
+    const arabic = hasArabicText(questionText + " " + options.join(" "));
+    const image = hasImageRef(questionText + " " + options.join(" "));
+
     questions.push({
       question: questionText,
       options,
       answer: answer || "",
       type: isPG ? "Pilihan Ganda" : "Uraian",
       difficulty: detectDifficulty(questionText, options),
+      hasArabic: arabic,
+      hasImage: image,
     });
   }
 
@@ -423,6 +517,8 @@ export interface ImportResult {
   format: string;
   detectedType: string;
   questions: ParsedSoal[];
+  arabicCount?: number;
+  imageCount?: number;
 }
 
 export async function importSoal(file: File): Promise<ImportResult> {
@@ -456,6 +552,8 @@ export async function importSoal(file: File): Promise<ImportResult> {
   const pgCount = questions.filter((q) => q.type === "Pilihan Ganda").length;
   const urCount = questions.filter((q) => q.type === "Uraian").length;
   const detectedType = pgCount > urCount ? "Pilihan Ganda" : urCount > pgCount ? "Uraian" : "Campuran";
+  const arabicCount = questions.filter((q) => q.hasArabic).length;
+  const imageCount = questions.filter((q) => q.hasImage).length;
 
-  return { format, detectedType, questions };
+  return { format, detectedType, questions, arabicCount, imageCount };
 }

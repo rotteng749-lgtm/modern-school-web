@@ -358,6 +358,8 @@ export default function UjianDetail() {
     setCurrentIdx(0);
     setSubmitted(false);
     setResult(null);
+    setShowFullscreenPrompt(true);
+    examStarted.current = false;
     localStorage.removeItem(RESULT_KEY_PREFIX + id);
     localStorage.removeItem(ANSWER_KEY_PREFIX + id);
     localStorage.removeItem("msw-cbt-flagged-" + id);
