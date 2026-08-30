@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/select";
 import { FileUpload } from "@/components/FileUpload";
 import { parseDocx, type ParsedStudent } from "@/lib/docx-import";
+import { useLocalAuth } from "@/hooks/use-local-auth";
 
 /* ═══════════════════════════════════════════
    MURID MANAGEMENT — Yayasan Mambaul Hasan
@@ -110,18 +111,23 @@ export default function Murid() {
   const [importClassName, setImportClassName] = useState("X IPA 1");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const auth = useLocalAuth();
+
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        setMuridList(JSON.parse(raw));
-      } else {
-        setMuridList(INITIAL_MURID);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_MURID));
-      }
+      const list: MuridData[] = raw ? JSON.parse(raw) : INITIAL_MURID;
+      setMuridList(list);
+      // Sync initial murid data to auth
+      list.forEach((m) => {
+        if (m.username && m.password && m.status === "aktif") {
+          auth.addUser(m.username, m.password, m.name, "siswa");
+        }
+      });
     } catch {
       setMuridList(INITIAL_MURID);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const save = (list: MuridData[]) => {
@@ -155,16 +161,30 @@ export default function Murid() {
     if (!form.name || !form.className) return;
 
     if (editingId) {
+      const prev = muridList.find((m) => m.id === editingId);
       save(muridList.map((m) => (m.id === editingId ? { ...m, ...form } : m)));
+      // Sync to auth
+      if (form.username && form.password) {
+        if (prev?.username && prev.username !== form.username) {
+          auth.deleteUser(prev.username);
+        }
+        auth.addUser(form.username, form.password, form.name, "siswa");
+      }
     } else {
       const newMurid: MuridData = { ...form, id: Date.now().toString() };
       save([newMurid, ...muridList]);
+      // Sync to auth
+      if (form.username && form.password) {
+        auth.addUser(form.username, form.password, form.name, "siswa");
+      }
     }
     setDialogOpen(false);
   };
 
   const handleDelete = (id: string) => {
     if (confirm("Hapus murid ini?")) {
+      const m = muridList.find((m) => m.id === id);
+      if (m?.username) auth.deleteUser(m.username);
       save(muridList.filter((m) => m.id !== id));
     }
   };
@@ -269,6 +289,13 @@ export default function Murid() {
         }));
 
         save([...newMurids, ...muridList]);
+
+        // Sync imported students to auth
+        newMurids.forEach((m) => {
+          if (m.username && m.password) {
+            auth.addUser(m.username, m.password, m.name, "siswa");
+          }
+        });
 
         setTimeout(() => {
           setImporting(false);

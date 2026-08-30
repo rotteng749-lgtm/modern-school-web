@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocalAuth } from "@/hooks/use-local-auth";
 import {
   Users,
   Plus,
@@ -46,16 +47,18 @@ export interface GuruData {
   email: string;
   phone: string;
   status: "aktif" | "nonaktif";
-  photo?: string; // base64 data URL
+  photo?: string;
+  username?: string;
+  password?: string;
 }
 
 const STORAGE_KEY = "msw-guru";
 
 const INITIAL_GURU: GuruData[] = [
-  { id: "1", name: "Dr. Ahmad Sudirman, M.Pd", nip: "198501012010011001", subject: "Matematika", email: "ahmad@sekolah.id", phone: "0812-3456-7890", status: "aktif" },
-  { id: "2", name: "Siti Rahmawati, S.Pd", nip: "199003152015042001", subject: "Bahasa Indonesia", email: "siti@sekolah.id", phone: "0813-4567-8901", status: "aktif" },
-  { id: "3", name: "Budi Hartono, M.Sc", nip: "198806202012031001", subject: "Fisika", email: "budi@sekolah.id", phone: "0821-5678-9012", status: "aktif" },
-  { id: "4", name: "Dewi Kartika, S.Pd", nip: "199205102018012001", subject: "Kimia", email: "dewi@sekolah.id", phone: "0856-6789-0123", status: "nonaktif" },
+  { id: "1", name: "Dr. Ahmad Sudirman, M.Pd", nip: "198501012010011001", subject: "Matematika", email: "ahmad@sekolah.id", phone: "0812-3456-7890", status: "aktif", username: "ahmadsudirman", password: "Ahmad@2026" },
+  { id: "2", name: "Siti Rahmawati, S.Pd", nip: "199003152015042001", subject: "Bahasa Indonesia", email: "siti@sekolah.id", phone: "0813-4567-8901", status: "aktif", username: "sitirahma", password: "Siti@2026" },
+  { id: "3", name: "Budi Hartono, M.Sc", nip: "198806202012031001", subject: "Fisika", email: "budi@sekolah.id", phone: "0821-5678-9012", status: "aktif", username: "budiharto", password: "Budi@2026" },
+  { id: "4", name: "Dewi Kartika, S.Pd", nip: "199205102018012001", subject: "Kimia", email: "dewi@sekolah.id", phone: "0856-6789-0123", status: "nonaktif", username: "dewikartika", password: "Dewi@2026" },
 ];
 
 const MAPPEL = ["Matematika", "Bahasa Indonesia", "Bahasa Inggris", "Fisika", "Kimia", "Biologi", "IPS", "Pendidikan Agama", "PJOK", "Informatika"];
@@ -68,6 +71,8 @@ const EMPTY_FORM: Omit<GuruData, "id"> = {
   phone: "",
   status: "aktif",
   photo: undefined,
+  username: "",
+  password: "",
 };
 
 export default function Guru() {
@@ -77,8 +82,18 @@ export default function Guru() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
 
+  const auth = useLocalAuth();
+
   // Load from localStorage
   useEffect(() => {
+    // Sync initial guru data to auth
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const list: GuruData[] = raw ? JSON.parse(raw) : INITIAL_GURU;
+    list.forEach((g) => {
+      if (g.username && g.password) {
+        auth.addUser(g.username, g.password, g.name, "guru");
+      }
+    });
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
@@ -112,7 +127,7 @@ export default function Guru() {
 
   const openEdit = (g: GuruData) => {
     setEditingId(g.id);
-    setForm({ name: g.name, nip: g.nip, subject: g.subject, email: g.email, phone: g.phone, status: g.status, photo: g.photo });
+    setForm({ name: g.name, nip: g.nip, subject: g.subject, email: g.email, phone: g.phone, status: g.status, photo: g.photo, username: g.username || "", password: g.password || "" });
     setDialogOpen(true);
   };
 
@@ -120,16 +135,27 @@ export default function Guru() {
     if (!form.name || !form.subject) return;
 
     if (editingId) {
+      const prev = guruList.find((g) => g.id === editingId);
       save(guruList.map((g) => (g.id === editingId ? { ...g, ...form } : g)));
+      // Sync to auth
+      if (form.username && form.password) {
+        auth.updateUser(prev?.username || "", form.username, form.password, form.name, "guru");
+      }
     } else {
       const newGuru: GuruData = { ...form, id: Date.now().toString() };
       save([newGuru, ...guruList]);
+      // Sync to auth
+      if (form.username && form.password) {
+        auth.addUser(form.username, form.password, form.name, "guru");
+      }
     }
     setDialogOpen(false);
   };
 
   const handleDelete = (id: string) => {
     if (confirm("Hapus guru ini?")) {
+      const g = guruList.find((g) => g.id === id);
+      if (g?.username) auth.deleteUser(g.username);
       save(guruList.filter((g) => g.id !== id));
     }
   };
@@ -229,6 +255,11 @@ export default function Guru() {
                         <span className="flex items-center gap-1"><Mail className="size-3" />{g.email}</span>
                         <span className="flex items-center gap-1"><Phone className="size-3" />{g.phone}</span>
                       </div>
+                      {g.username && (
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          User: <span className="font-mono">{g.username}</span> · Pass: <span className="font-mono">{g.password}</span>
+                        </p>
+                      )}
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <Button variant="ghost" size="icon-sm" onClick={() => openEdit(g)}>
@@ -317,6 +348,25 @@ export default function Guru() {
                   <SelectItem value="nonaktif">Nonaktif</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Username</Label>
+                <Input
+                  placeholder="Masukkan username login"
+                  value={form.username}
+                  onChange={(e) => setForm({ ...form, username: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Password</Label>
+                <Input
+                  placeholder="Masukkan password"
+                  type="password"
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                />
+              </div>
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Foto Profil</Label>

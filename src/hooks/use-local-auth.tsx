@@ -59,6 +59,8 @@ interface AuthCtx {
   signIn: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signOut: () => void;
   addUser: (username: string, password: string, name: string, role: Role, childId?: string) => boolean;
+  updateUser: (oldUsername: string, newUsername: string, password: string, name: string, role: Role, childId?: string) => boolean;
+  deleteUser: (username: string) => void;
 }
 
 const Ctx = createContext<AuthCtx | null>(null);
@@ -100,8 +102,25 @@ export function LocalAuthProvider({ children }: { children: ReactNode }) {
     return true;
   }, []);
 
+  const updateUser = useCallback((oldUsername: string, newUsername: string, password: string, name: string, role: Role, childId?: string) => {
+    const users = getUsers();
+    // Remove old key if username changed
+    if (oldUsername !== newUsername && users[oldUsername]) {
+      delete users[oldUsername];
+    }
+    users[newUsername] = { password, user: { username: newUsername, name, role, childId } };
+    saveUsers(users);
+    return true;
+  }, []);
+
+  const deleteUser = useCallback((username: string) => {
+    const users = getUsers();
+    delete users[username];
+    saveUsers(users);
+  }, []);
+
   return (
-    <Ctx.Provider value={{ user, isLoading, signIn, signOut, addUser }}>
+    <Ctx.Provider value={{ user, isLoading, signIn, signOut, addUser, updateUser, deleteUser }}>
       {children}
     </Ctx.Provider>
   );
@@ -111,4 +130,25 @@ export function useLocalAuth() {
   const ctx = useContext(Ctx);
   if (!ctx) throw new Error("useLocalAuth must be used within LocalAuthProvider");
   return ctx;
+}
+
+/** Helper: sync a single person (murid/guru) to auth store */
+export function syncUserToAuth(
+  auth: AuthCtx,
+  username: string,
+  password: string,
+  name: string,
+  role: Role,
+  prevUsername?: string,
+  childId?: string,
+) {
+  if (!username || !password) return;
+  if (prevUsername && prevUsername !== username) {
+    auth.deleteUser(prevUsername);
+  }
+  if (prevUsername && prevUsername === username) {
+    auth.updateUser(username, username, password, name, role, childId);
+  } else {
+    auth.addUser(username, password, name, role, childId);
+  }
 }
