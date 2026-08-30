@@ -9,7 +9,7 @@ import mammoth from "mammoth";
 export interface ParsedSoal {
   question: string;
   options: string[];    // A-E (empty for uraian)
-  answer: string;       // jawaban benar (opsional)
+  answer: string;       // jawaban benar
   type: "Pilihan Ganda" | "Uraian";
   difficulty: "Mudah" | "Sedang" | "Sulit";
 }
@@ -24,21 +24,16 @@ function getFileType(file: File): "docx" | "txt" | "csv" | "unknown" {
 }
 
 /* ═══════════════════════════════════════════
-   PARSER — Handles complex exam documents
-   with PG (A-E), essay, answer key, pembahasan
+   MAIN PARSER
    ═══════════════════════════════════════════ */
 
-/**
- * Main text parser — handles the "NASKAH SOAL" format
- * with sections, A-E options, answer key tables, essay, pembahasan
- */
 function parseTextContent(text: string): ParsedSoal[] {
   const normalized = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
 
-  // Step 1: Extract answer key from "KUNCI JAWABAN" section
-  const answerKey = extractAnswerKey(normalized);
+  // Step 1: Extract ALL answer keys from entire text (multiple sources)
+  const answerKey = extractAllAnswerKeys(normalized);
 
-  // Step 2: Split into sections by "BAGIAN" headers
+  // Step 2: Split into sections
   const pgSection = extractSection(normalized, "BAGIAN I", "BAGIAN II");
   const essaySection = extractSection(normalized, "BAGIAN II", "BAGIAN III");
 
@@ -46,11 +41,10 @@ function parseTextContent(text: string): ParsedSoal[] {
 
   // Step 3: Parse PG questions (A-E)
   if (pgSection) {
-    const pgBlocks = splitPGQuestions(pgSection);
+    const pgBlocks = splitQuestions(pgSection);
     for (const block of pgBlocks) {
       const q = parsePGBlock(block);
       if (q) {
-        // Match answer from key
         const num = extractQuestionNumber(block);
         if (num && answerKey[num]) {
           q.answer = answerKey[num];
@@ -62,72 +56,141 @@ function parseTextContent(text: string): ParsedSoal[] {
 
   // Step 4: Parse essay questions
   if (essaySection) {
-    const essayBlocks = splitEssayQuestions(essaySection);
+    const essayBlocks = splitQuestions(essaySection);
     for (const block of essayBlocks) {
       const q = parseEssayBlock(block);
-      if (q) questions.push(q);
+      if (q) {
+        // Also check if pembahasan has answer for essay
+        const num = extractQuestionNumber(block);
+        if (num && answerKey[`essay_${num}`]) {
+          q.answer = answerKey[`essay_${num}`];
+        }
+        questions.push(q);
+      }
     }
   }
 
-  // Fallback: if no sections found, try generic parsing
+  // Fallback: no section headers found, parse generically
   if (questions.length === 0) {
-    return parseGenericText(normalized);
+    return parseGenericText(normalized, answerKey);
   }
 
   return questions;
 }
 
-/* ── Extract answer key from KUNCI JAWABAN section ── */
-function extractAnswerKey(text: string): Record<string, string> {
+/* ═══════════════════════════════════════════
+   ANSWER KEY EXTRACTION — Multiple strategies
+   ═══════════════════════════════════════════ */
+
+function extractAllAnswerKeys(text: string): Record<string, string> {
   const key: Record<string, string> = {};
 
-  // Look for answer key patterns: "1 B", "1. B", "1\tB", "No\tKunci" tables
-  // Pattern 1: "1 B" or "1. B" or "1\tB" (tab-separated)
+  // Strategy 1: Table format — "1 B" or "1\tB" or "1. B" (multi-column)
+  extractTableKeys(text, key);
+
+  // Strategy 2: "Soal N [Kunci: X]" format from pembahasan
+  extractPembahasanKeys(text, key);
+
+  // Strategy 3: "N. X" or "N) X" format
+  extractSimpleKeys(text, key);
+
+  // Strategy 4: Answer key labeled "Jawaban:" or "Kunci:" per question
+  extractInlineKeys(text, key);
+
+  return key;
+}
+
+/** Strategy 1: Multi-column table — "1 B 6 C 11 A" */
+function extractTableKeys(text: string, key: Record<string, string>) {
   const lines = text.split("\n");
   let inKeySection = false;
 
   for (const line of lines) {
     const trimmed = line.trim();
+    if (!trimmed) continue;
 
     // Detect start of answer key section
-    if (/KUNCI\s+JAWABAN|KUNCI\s+JAWAB/i.test(trimmed)) {
+    if (/KUNCI\s+JAWABAN|KUNCI\s+JAWAB|JAWABAN\s+BENAR/i.test(trimmed)) {
       inKeySection = true;
       continue;
     }
 
-    // Detect start of pembahasan (stop collecting keys)
-    if (/PEMBAHASAN|Pembahasan/i.test(trimmed) && inKeySection) {
+    // Detect end of answer key section
+    if (/PEMBAHASAN|PEMBAHASAN\s+DETIL|BAGIAN\s+III\s*:/i.test(trimmed) && inKeySection) {
       inKeySection = false;
       continue;
     }
 
-    if (inKeySection) {
-      // Skip header rows
-      if (/^No\b|^Kunci\b|^\d+\s*$/i.test(trimmed)) continue;
-      if (trimmed.length < 2) continue;
+    if (!inKeySection) continue;
 
-      // Pattern: "1 B" or "1\tB" or "1. B" or "1 B\t2 C" (multi-column)
-      const matches = trimmed.matchAll(/(\d+)\s*[.\s:\-–—]+\s*([A-Ea-e])/gi);
-      for (const m of matches) {
-        const num = m[1];
-        const letter = m[2].toUpperCase();
+    // Skip headers like "No\tKunci" or "No. Kunci"
+    if (/^No[\s.:]/i.test(trimmed)) continue;
+    if (/^Kunci[\s.:]/i.test(trimmed)) continue;
+    if (trimmed.length < 3) continue;
+
+    // Match multi-column: "1 B 6 C 11 A" or "1\tB\t6\tC"
+    const matches = trimmed.matchAll(/(\d+)\s*[.\s:\-–—]+\s*([A-Ea-e])/gi);
+    for (const m of matches) {
+      const num = m[1];
+      const letter = m[2].toUpperCase();
+      // Only store PG answers (1-100 range), skip if already set by more reliable source
+      if (parseInt(num) <= 200 && !key[num]) {
         key[num] = letter;
-      }
-
-      // Also try: just "B" on a line that follows a number
-      if (Object.keys(key).length === 0 || trimmed.match(/^\d+\s+[A-E]$/)) {
-        const simple = trimmed.match(/^(\d+)\s+([A-E])$/i);
-        if (simple) {
-          key[simple[1]] = simple[2].toUpperCase();
-        }
       }
     }
   }
-
-  return key;
 }
 
-/* ── Extract a section between two headers ── */
+/** Strategy 2: "Soal 1 [Kunci: B]:" from pembahasan */
+function extractPembahasanKeys(text: string, key: Record<string, string>) {
+  // Pattern: "Soal 1 [Kunci: B]:" or "Soal 1 [Kunci:B]"
+  const soalKunci = text.matchAll(/Soal\s+(\d+)\s*\[Kunci:\s*([A-Ea-e])\]/gi);
+  for (const m of soalKunci) {
+    const num = m[1];
+    const letter = m[2].toUpperCase();
+    if (!key[num]) {
+      key[num] = letter;
+    }
+  }
+
+  // Also: "Soal Isian N:" — mark as essay
+  const soalIsian = text.matchAll(/Soal\s+Isian\s+(\d+)/gi);
+  for (const m of soalIsian) {
+    key[`essay_${m[1]}`] = "essay";
+  }
+}
+
+/** Strategy 3: Simple "N. X" or "N) X" format */
+function extractSimpleKeys(text: string, key: Record<string, string>) {
+  // Look for patterns like "1. B" or "1) B" that appear in lines
+  const matches = text.matchAll(/(?:^|\s)(\d{1,3})\s*[.)]\s*([A-Ea-e])\b/gm);
+  for (const m of matches) {
+    const num = m[1];
+    const letter = m[2].toUpperCase();
+    if (parseInt(num) <= 200 && !key[num]) {
+      key[num] = letter;
+    }
+  }
+}
+
+/** Strategy 4: "Jawaban: A" or "Kunci: B" inline */
+function extractInlineKeys(text: string, key: Record<string, string>) {
+  const matches = text.matchAll(/(?:Jawaban|Kunci|Answer)\s*[:=]\s*([A-Ea-e])\b/gi);
+  let idx = 1;
+  for (const m of matches) {
+    const letter = m[1].toUpperCase();
+    if (!key[String(idx)]) {
+      key[String(idx)] = letter;
+    }
+    idx++;
+  }
+}
+
+/* ═══════════════════════════════════════════
+   SECTION & QUESTION PARSING
+   ═══════════════════════════════════════════ */
+
+/** Extract section between two headers */
 function extractSection(text: string, startPattern: string, endPattern: string): string | null {
   const startIdx = text.indexOf(startPattern);
   if (startIdx === -1) return null;
@@ -139,24 +202,20 @@ function extractSection(text: string, startPattern: string, endPattern: string):
   return afterStart.slice(0, endIdx);
 }
 
-/* ── Split PG section into individual question blocks ── */
-function splitPGQuestions(section: string): string[] {
-  // Split by numbered questions: "1.", "2.", etc. at start of line
-  const blocks = section
+/** Split section into individual question blocks */
+function splitQuestions(section: string): string[] {
+  return section
     .split(/\n\s*(?=\d+[\.)]\s+)/)
     .map((b) => b.trim())
     .filter((b) => b.length > 10 && /\d+[\.]/.test(b));
-
-  return blocks;
 }
 
-/* ── Parse a single PG block (A-E options) ── */
+/** Parse a single PG block (A-E options) */
 function parsePGBlock(block: string): ParsedSoal | null {
   // Remove leading number
-  let text = block.replace(/^\s*\d+[\.]\s*/, "").trim();
+  let text = block.replace(/^\s*\d+[\.)]\s*/, "").trim();
 
   // Extract options: A. ... through E. ...
-  const options: string[] = [];
   const optionRegex = /\n\s*([A-E])\.\s+/g;
   const optionPositions: { letter: string; start: number }[] = [];
 
@@ -172,8 +231,9 @@ function parsePGBlock(block: string): ParsedSoal | null {
   const question = text.slice(0, questionEnd).replace(/\n/g, " ").trim();
 
   // Extract each option text
+  const options: string[] = [];
   for (let i = 0; i < optionPositions.length; i++) {
-    const start = optionPositions[i].start + optionPositions[i].letter.length + 2; // skip "A. "
+    const start = optionPositions[i].start + optionPositions[i].letter.length + 2;
     const end = i < optionPositions.length - 1 ? optionPositions[i + 1].start : text.length;
     const optText = text.slice(start, end).replace(/\n/g, " ").trim();
     if (optText) options.push(optText);
@@ -190,34 +250,25 @@ function parsePGBlock(block: string): ParsedSoal | null {
   };
 }
 
-/* ── Extract question number from block ── */
+/** Extract question number from block */
 function extractQuestionNumber(block: string): string | null {
   const m = block.match(/^\s*(\d+)[\.]/);
   return m ? m[1] : null;
 }
 
-/* ── Split essay section into individual questions ── */
-function splitEssayQuestions(section: string): string[] {
-  return section
-    .split(/\n\s*(?=\d+[\.]\s+)/)
-    .map((b) => b.trim())
-    .filter((b) => b.length > 10 && /\d+[\.]/.test(b));
-}
-
-/* ── Parse a single essay block ── */
+/** Parse a single essay block */
 function parseEssayBlock(block: string): ParsedSoal | null {
-  // Remove leading number
-  let text = block.replace(/^\s*\d+[\.]\s*/, "").trim();
+  let text = block.replace(/^\s*\d+[\.)]\s*/, "").trim();
 
-  // Remove "Jawab:" and following dots
-  text = text.replace(/Jawab:\s*\.*/g, "").trim();
+  // Remove "Jawab:" and following dots/underscores
+  text = text.replace(/Jawab:\s*[.\s_]*/g, "").trim();
 
-  // Cut at "Soal Isian" next marker or end
+  // Cut at next "Soal Isian" marker
   const endIdx = text.search(/\nSoal\s+Isian\s+\d/);
   if (endIdx > 0) text = text.slice(0, endIdx).trim();
 
-  // Remove dot patterns (blank lines for writing)
-  text = text.replace(/\.{10,}/g, "").replace(/\n\s*\n/g, "\n").trim();
+  // Remove dot/underscore patterns (blank lines for writing)
+  text = text.replace(/[._]{5,}/g, "").replace(/\n\s*\n/g, "\n").trim();
 
   if (text.length < 5) return null;
 
@@ -230,8 +281,8 @@ function parseEssayBlock(block: string): ParsedSoal | null {
   };
 }
 
-/* ── Generic fallback parser ── */
-function parseGenericText(text: string): ParsedSoal[] {
+/** Generic fallback parser — no section headers */
+function parseGenericText(text: string, answerKey: Record<string, string>): ParsedSoal[] {
   const blocks = text
     .split(/\n\s*(?=\d+[\.)]\s+)/)
     .map((b) => b.trim())
@@ -240,23 +291,28 @@ function parseGenericText(text: string): ParsedSoal[] {
   const questions: ParsedSoal[] = [];
 
   for (const block of blocks) {
-    // Try PG first
     const pgMatch = block.match(/\n\s*([A-E])\.\s+/g);
     if (pgMatch && pgMatch.length >= 2) {
       const q = parsePGBlock(block);
-      if (q) questions.push(q);
+      if (q) {
+        const num = extractQuestionNumber(block);
+        if (num && answerKey[num]) {
+          q.answer = answerKey[num];
+        }
+        questions.push(q);
+      }
     } else {
-      // Essay
-      let text = block.replace(/^\s*\d+[\.]\s*/, "").trim();
-      text = text.replace(/Jawab:\s*\.*/g, "").trim();
-      text = text.replace(/\.{10,}/g, "").trim();
-      if (text.length >= 5) {
+      let t = block.replace(/^\s*\d+[\.)]\s*/, "").trim();
+      t = t.replace(/Jawab:\s*[.\s_]*/g, "").trim();
+      t = t.replace(/[._]{5,}/g, "").trim();
+      if (t.length >= 5) {
+        const num = extractQuestionNumber(block);
         questions.push({
-          question: text,
+          question: t,
           options: [],
           answer: "",
           type: "Uraian",
-          difficulty: detectDifficulty(text, []),
+          difficulty: detectDifficulty(t, []),
         });
       }
     }
@@ -279,20 +335,17 @@ function detectDifficulty(question: string, options: string[]): "Mudah" | "Sedan
    FILE PARSERS
    ═══════════════════════════════════════════ */
 
-/* ── Parse .docx ── */
 async function parseDocx(file: File): Promise<ParsedSoal[]> {
   const arrayBuffer = await file.arrayBuffer();
   const result = await mammoth.extractRawText({ arrayBuffer });
   return parseTextContent(result.value);
 }
 
-/* ── Parse .txt ── */
 async function parseTxt(file: File): Promise<ParsedSoal[]> {
   const text = await file.text();
   return parseTextContent(text);
 }
 
-/* ── Parse .csv ── */
 async function parseCsv(file: File): Promise<ParsedSoal[]> {
   const text = await file.text();
   const lines = text.split("\n").map((l) => l.trim()).filter((l) => l.length > 0);
@@ -372,9 +425,6 @@ export interface ImportResult {
   questions: ParsedSoal[];
 }
 
-/**
- * Auto-detect file format and parse questions.
- */
 export async function importSoal(file: File): Promise<ImportResult> {
   const fileType = getFileType(file);
   let questions: ParsedSoal[] = [];

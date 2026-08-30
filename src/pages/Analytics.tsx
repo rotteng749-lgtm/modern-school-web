@@ -242,7 +242,7 @@ export default function Analytics() {
                 </div>
                 {stat.label === "Online Sekarang" && (
                   <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 text-[10px] font-medium">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                     Live
                   </span>
                 )}

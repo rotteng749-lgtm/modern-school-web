@@ -256,7 +256,7 @@ export function ImagePicker({ category, selectedId, onSelect, className }: Image
     return (
       <div className={cn("grid grid-cols-4 gap-2", className)}>
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="aspect-square rounded-lg bg-muted animate-pulse" />
+          <div key={i} className="aspect-square rounded-lg bg-muted" />
         ))}
       </div>
     );

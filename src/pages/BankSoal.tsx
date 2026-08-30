@@ -370,13 +370,13 @@ export default function BankSoal() {
         {importPhase && !importDialogOpen && (
           <div className="rounded-xl border bg-card text-card-foreground p-4 obsidian-sheen">
             <div className="flex items-center gap-3 mb-2">
-              <Upload className="size-4 text-primary animate-pulse" />
+              <Upload className="size-4 text-primary" />
               <span className="text-sm font-medium">{importPhase}</span>
               <span className="ml-auto text-xs text-muted-foreground">{importProgress}%</span>
             </div>
             <div className="h-2 bg-muted rounded-full overflow-hidden">
               <div
-                className="h-full rounded-full transition-all duration-300 ease-out"
+                className="h-full rounded-full transition-[width] duration-150"
                 style={{
                   width: `${importProgress}%`,
                   background:
@@ -782,13 +782,13 @@ export default function BankSoal() {
           {importing && (
             <div className="space-y-2 mt-3">
               <div className="flex items-center gap-2 text-sm">
-                <Upload className="size-4 text-primary animate-pulse" />
+                <Upload className="size-4 text-primary" />
                 <span>{importPhase}</span>
                 <span className="ml-auto text-muted-foreground">{importProgress}%</span>
               </div>
               <div className="h-2 bg-muted rounded-full overflow-hidden">
                 <div
-                  className="h-full rounded-full transition-all duration-200"
+                  className="h-full rounded-full transition-[width] duration-150"
                   style={{
                     width: `${importProgress}%`,
                     background: "linear-gradient(90deg, #10b981, #34d399)",
