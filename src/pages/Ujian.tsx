@@ -108,7 +108,16 @@ export default function Ujian() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
-        setUjianList(JSON.parse(raw));
+        const parsed: UjianData[] = JSON.parse(raw);
+        // Migrate old data: add missing fields
+        const migrated = parsed.map((u) => ({
+          ...u,
+          subject: u.subject ?? "",
+          questionIds: u.questionIds ?? [],
+          startTime: u.startTime ?? "08:00",
+          endTime: u.endTime ?? "10:00",
+        }));
+        setUjianList(migrated);
       } else {
         setUjianList(INITIAL_UJIAN);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_UJIAN));
