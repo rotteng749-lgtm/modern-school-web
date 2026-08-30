@@ -16,7 +16,7 @@ import {
   Copy,
   Wand2,
 } from "lucide-react";
-import { Card3D } from "@/components/Card3D";
+// Simple static card (no animation)
 import { DashboardShell } from "@/components/DashboardShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -368,7 +368,7 @@ export default function BankSoal() {
 
         {/* Import progress bar */}
         {importPhase && !importDialogOpen && (
-          <Card3D intensity={1} className="p-4 obsidian-sheen">
+          <div className="rounded-xl border bg-card text-card-foreground p-4 obsidian-sheen">
             <div className="flex items-center gap-3 mb-2">
               <Upload className="size-4 text-primary animate-pulse" />
               <span className="text-sm font-medium">{importPhase}</span>
@@ -386,7 +386,7 @@ export default function BankSoal() {
                 }}
               />
             </div>
-          </Card3D>
+          </div>
         )}
 
         {/* Search + Filter */}
@@ -431,10 +431,9 @@ export default function BankSoal() {
           </h2>
           <div className="grid gap-3 grid-cols-2 sm:grid-cols-3">
             {SUBJECTS.filter((s) => categoryCounts[s]).map((name) => (
-              <Card3D
+              <div
                 key={name}
-                intensity={3}
-                className={`p-4 obsidian-sheen cursor-pointer transition-all ${
+                className={`p-4 rounded-xl border bg-card obsidian-sheen cursor-pointer ${
                   filterSubject === name ? "ring-2 ring-primary" : ""
                 }`}
                 onClick={() => setFilterSubject(filterSubject === name ? "all" : name)}
@@ -463,14 +462,14 @@ export default function BankSoal() {
                     <Trash2 className="size-3.5" />
                   </button>
                 </div>
-              </Card3D>
+              </div>
             ))}
             {Object.keys(categoryCounts).length === 0 && (
-              <Card3D intensity={2} className="p-4 obsidian-sheen col-span-full">
+              <div className="rounded-xl border bg-card text-card-foreground p-4 obsidian-sheen col-span-full">
                 <p className="text-sm text-muted-foreground text-center">
                   Belum ada soal. Tambah atau import soal pertama.
                 </p>
-              </Card3D>
+              </div>
             )}
           </div>
         </div>
@@ -485,7 +484,7 @@ export default function BankSoal() {
               {filtered.length} dari {soalList.length}
             </span>
           </div>
-          <Card3D intensity={2} className="overflow-hidden obsidian-sheen">
+          <div className="rounded-xl border bg-card text-card-foreground overflow-hidden obsidian-sheen">
             <div className="divide-y">
               {filtered.length === 0 ? (
                 <div className="py-12 text-center text-sm text-muted-foreground">
@@ -559,7 +558,7 @@ export default function BankSoal() {
                 ))
               )}
             </div>
-          </Card3D>
+          </div>
         </div>
       </div>
 
