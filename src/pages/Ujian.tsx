@@ -7,12 +7,14 @@ import {
   PlayCircle,
   Search,
   Plus,
-  MoreHorizontal,
   FileText,
-  Filter,
-  Upload,
   X,
   Save,
+  Trash2,
+  Edit,
+  Eye,
+  BookOpen,
+  CheckCircle,
 } from "lucide-react";
 import { Link } from "react-router";
 import { Card3D } from "@/components/Card3D";
@@ -35,91 +37,74 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { getSubjects, initSubjects } from "@/lib/subjects-store";
+import type { SoalItem } from "@/pages/BankSoal";
 
 /* ═══════════════════════════════════════════
-   UJIAN / CBT — Modern School Web
+   UJIAN / CBT — Yayasan Mambaul Hasan
    ═══════════════════════════════════════════ */
 
-interface UjianData {
-  id: number;
+export interface UjianData {
+  id: string;
   name: string;
   className: string;
+  subject: string;
   date: string;
-  time: string;
-  participants: number;
-  total: number;
-  questions: number;
+  startTime: string;
+  endTime: string;
+  totalStudents: number;
+  questionCount: number;
   status: "active" | "upcoming" | "finished";
+  questionIds: string[];
 }
 
 const STORAGE_KEY = "msw-ujian";
+const SOAL_KEY = "msw-bank-soal";
+
+const KELAS = [
+  "MI Kelas 1", "MI Kelas 2", "MI Kelas 3",
+  "MI Kelas 4", "MI Kelas 5", "MI Kelas 6",
+];
 
 const INITIAL_UJIAN: UjianData[] = [
   {
-    id: 1,
-    name: "UTB — Matematika XII IPA",
-    className: "XII IPA 1 & 2",
-    date: "28 Agustus 2026",
-    time: "08:00 – 10:00",
-    participants: 64,
-    total: 64,
-    questions: 40,
-    status: "active",
+    id: "1", name: "Ujian Akhir Semester — Matematika", className: "MI Kelas 6",
+    subject: "Matematika", date: "2026-06-15", startTime: "08:00", endTime: "10:00",
+    totalStudents: 32, questionCount: 20, status: "finished", questionIds: [],
   },
   {
-    id: 2,
-    name: "Try Out UTBK — Bahasa Indonesia",
-    className: "XII IPS 1",
-    date: "30 Agustus 2026",
-    time: "09:00 – 11:30",
-    participants: 0,
-    total: 32,
-    questions: 50,
-    status: "upcoming",
-  },
-  {
-    id: 3,
-    name: "UH Fisika XI",
-    className: "XI IPA 3",
-    date: "25 Agustus 2026",
-    time: "13:00 – 14:00",
-    participants: 30,
-    total: 30,
-    questions: 25,
-    status: "finished",
+    id: "2", name: "UTS — Bahasa Indonesia", className: "MI Kelas 5",
+    subject: "Bahasa Indonesia", date: "2026-08-30", startTime: "09:00", endTime: "11:00",
+    totalStudents: 28, questionCount: 25, status: "active", questionIds: [],
   },
 ];
 
 const EMPTY_FORM = {
   name: "",
   className: "",
+  subject: "",
   date: "",
-  startTime: "",
-  endTime: "",
-  total: 0,
-  questions: 0,
-  status: "upcoming" as const,
-};
-
-const KELAS_OPTIONS = [
-  "X IPA 1", "X IPA 2", "X IPS 1", "X IPS 2",
-  "XI IPA 1", "XI IPA 2", "XI IPS 1", "XI IPS 2",
-  "XII IPA 1", "XII IPA 2", "XII IPS 1", "XII IPS 2",
-];
-
-const STATUS_MAP = {
-  active: { label: "Berlangsung", variant: "default" as const },
-  upcoming: { label: "Mendatang", variant: "secondary" as const },
-  finished: { label: "Selesai", variant: "outline" as const },
+  startTime: "08:00",
+  endTime: "10:00",
+  totalStudents: 0,
+  questionCount: 20,
+  status: "upcoming" as "active" | "upcoming" | "finished",
 };
 
 export default function Ujian() {
   const [ujianList, setUjianList] = useState<UjianData[]>([]);
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [subjects, setSubjects] = useState<string[]>([]);
+  const [bankSoal, setBankSoal] = useState<SoalItem[]>([]);
+  const [selectedSoal, setSelectedSoal] = useState<Set<string>>(new Set());
 
   useEffect(() => {
+    initSubjects();
+    setSubjects(getSubjects());
+
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
@@ -131,6 +116,11 @@ export default function Ujian() {
     } catch {
       setUjianList(INITIAL_UJIAN);
     }
+
+    try {
+      const raw = localStorage.getItem(SOAL_KEY);
+      if (raw) setBankSoal(JSON.parse(raw));
+    } catch { /* ignore */ }
   }, []);
 
   const save = (list: UjianData[]) => {
@@ -142,25 +132,89 @@ export default function Ujian() {
     (u) =>
       u.name.toLowerCase().includes(search.toLowerCase()) ||
       u.className.toLowerCase().includes(search.toLowerCase()) ||
-      u.date.toLowerCase().includes(search.toLowerCase())
+      u.subject.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleCreate = () => {
-    if (!form.name || !form.className || !form.date) return;
-    const newUjian: UjianData = {
-      id: Date.now(),
+  // Available soal for selected subject
+  const availableSoal = bankSoal.filter((s) => s.subject === form.subject);
+
+  // When subject changes, reset selected soal
+  const handleSubjectChange = (v: string) => {
+    setForm({ ...form, subject: v });
+    setSelectedSoal(new Set());
+  };
+
+  const toggleSoal = (id: string) => {
+    setSelectedSoal((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAllSoal = () => {
+    if (selectedSoal.size === availableSoal.length) {
+      setSelectedSoal(new Set());
+    } else {
+      setSelectedSoal(new Set(availableSoal.map((s) => s.id)));
+    }
+  };
+
+  const openAdd = () => {
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+    setSelectedSoal(new Set());
+    setDialogOpen(true);
+  };
+
+  const openEdit = (u: UjianData) => {
+    setEditingId(u.id);
+    setForm({
+      name: u.name,
+      className: u.className,
+      subject: u.subject,
+      date: u.date,
+      startTime: u.startTime,
+      endTime: u.endTime,
+      totalStudents: u.totalStudents,
+      questionCount: u.questionCount,
+      status: u.status,
+    });
+    setSelectedSoal(new Set(u.questionIds));
+    setDialogOpen(true);
+  };
+
+  const handleSave = () => {
+    if (!form.name || !form.className || !form.subject || !form.date) return;
+
+    const questionIds = Array.from(selectedSoal);
+    const data: UjianData = {
+      id: editingId || Date.now().toString(),
       name: form.name,
       className: form.className,
+      subject: form.subject,
       date: form.date,
-      time: `${form.startTime || "08:00"} – ${form.endTime || "10:00"}`,
-      participants: 0,
-      total: form.total,
-      questions: form.questions,
+      startTime: form.startTime,
+      endTime: form.endTime,
+      totalStudents: form.totalStudents,
+      questionCount: questionIds.length || form.questionCount,
       status: form.status,
+      questionIds,
     };
-    save([newUjian, ...ujianList]);
+
+    if (editingId) {
+      save(ujianList.map((u) => (u.id === editingId ? data : u)));
+    } else {
+      save([data, ...ujianList]);
+    }
     setDialogOpen(false);
-    setForm(EMPTY_FORM);
+  };
+
+  const handleDelete = (id: string) => {
+    if (confirm("Hapus ujian ini?")) {
+      save(ujianList.filter((u) => u.id !== id));
+    }
   };
 
   const stats = {
@@ -177,43 +231,34 @@ export default function Ujian() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Ujian / CBT</h1>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              Kelola ujian berbasis komputer
+              Kelola ujian berbasis komputer — {ujianList.length} ujian terdaftar
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="rounded-full">
-              <Upload className="size-3.5" />
-              Import Soal
-            </Button>
-            <Button size="sm" className="rounded-full" onClick={() => setDialogOpen(true)}>
-              <Plus className="size-4" />
-              Buat Ujian
-            </Button>
-          </div>
+          <Button size="sm" className="rounded-full" onClick={openAdd}>
+            <Plus className="size-4" />
+            Buat Ujian
+          </Button>
         </div>
 
-        {/* Search + Filter */}
+        {/* Search */}
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
             <Input
-              placeholder="Cari ujian berdasarkan nama, kelas, atau tanggal..."
+              placeholder="Cari ujian berdasarkan nama, kelas, atau mapel..."
               className="pl-9"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <Button variant="outline" size="icon" className="shrink-0">
-            <Filter className="size-4" />
-          </Button>
         </div>
 
         {/* Stats */}
         <div className="grid gap-3 grid-cols-3">
           {[
-            { label: "Berlangsung", value: stats.active, icon: PlayCircle, color: "text-primary" },
-            { label: "Mendatang", value: stats.upcoming, icon: Calendar, color: "text-muted-foreground" },
-            { label: "Selesai", value: stats.finished, icon: FileText, color: "text-emerald-500" },
+            { label: "Berlangsung", value: stats.active, icon: PlayCircle, color: "text-emerald-500" },
+            { label: "Mendatang", value: stats.upcoming, icon: Calendar, color: "text-amber-500" },
+            { label: "Selesai", value: stats.finished, icon: CheckCircle, color: "text-muted-foreground" },
           ].map((s) => (
             <Card3D key={s.label} intensity={2} className="p-4 text-center obsidian-sheen">
               <s.icon className={`size-4 mx-auto ${s.color}`} />
@@ -229,102 +274,124 @@ export default function Ujian() {
             <Card3D intensity={1} className="p-12 text-center obsidian-sheen">
               <ClipboardCheck className="size-8 mx-auto text-muted-foreground/40 mb-3" />
               <p className="text-sm text-muted-foreground">
-                {search ? "Tidak ada ujian yang cocok." : "Belum ada ujian. Klik \"Buat Ujian\" untuk menambahkan."}
+                {search ? "Tidak ada ujian yang cocok." : "Belum ada ujian. Klik \"Buat Ujian\" untuk membuat."}
               </p>
             </Card3D>
           ) : (
             filtered.map((ujian) => {
-              const statusInfo = STATUS_MAP[ujian.status];
-              const progress = ujian.total > 0 ? (ujian.participants / ujian.total) * 100 : 0;
+              const soalCount = ujian.questionIds.length;
+              const isActive = ujian.status === "active";
 
               return (
-                <Link key={ujian.id} to={`/ujian/${ujian.id}`}>
-                  <Card3D intensity={3} className="group p-5 obsidian-sheen">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="font-semibold text-sm truncate group-hover:text-primary transition-colors">
-                            {ujian.name}
-                          </h3>
-                          <Badge variant={statusInfo.variant} className="text-[10px]">
-                            {statusInfo.label}
-                          </Badge>
-                        </div>
-                        <p className="mt-1 text-xs text-muted-foreground">{ujian.className}</p>
-                        <div className="mt-2 flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
-                          <span className="flex items-center gap-1">
-                            <Calendar className="size-3" />
-                            {ujian.date}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Clock className="size-3" />
-                            {ujian.time}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Users className="size-3" />
-                            {ujian.participants}/{ujian.total}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <FileText className="size-3" />
-                            {ujian.questions} soal
-                          </span>
-                        </div>
+                <Card3D key={ujian.id} intensity={3} className="p-5 obsidian-sheen">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-semibold text-sm truncate">
+                          {ujian.name}
+                        </h3>
+                        <Badge
+                          variant={isActive ? "default" : ujian.status === "upcoming" ? "secondary" : "outline"}
+                          className="text-[10px]"
+                        >
+                          {isActive ? "Berlangsung" : ujian.status === "upcoming" ? "Mendatang" : "Selesai"}
+                        </Badge>
                       </div>
-
-                      {/* Progress bar */}
-                      <div className="w-full sm:w-32 shrink-0">
-                        <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                          <div
-                            className="h-full rounded-full bg-primary transition-all"
-                            style={{ width: `${progress}%` }}
-                          />
-                        </div>
-                        <p className="mt-1 text-[10px] text-muted-foreground text-right">
-                          {Math.round(progress)}%
-                        </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {ujian.className} · {ujian.subject}
+                      </p>
+                      <div className="mt-2 flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="size-3" />
+                          {ujian.date}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Clock className="size-3" />
+                          {ujian.startTime} – {ujian.endTime}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Users className="size-3" />
+                          {ujian.totalStudents} siswa
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <BookOpen className="size-3" />
+                          {soalCount || ujian.questionCount} soal
+                        </span>
                       </div>
-
-                      <MoreHorizontal className="size-4 text-muted-foreground shrink-0 hidden sm:block" />
                     </div>
-                  </Card3D>
-                </Link>
+
+                    <div className="flex items-center gap-1 shrink-0">
+                      {isActive && (
+                        <Link to={`/ujian/${ujian.id}`}>
+                          <Button size="sm" className="rounded-full text-xs">
+                            <PlayCircle className="size-3.5" />
+                            Mulai CBT
+                          </Button>
+                        </Link>
+                      )}
+                      <Button variant="ghost" size="icon-sm" onClick={() => openEdit(ujian)} title="Edit">
+                        <Edit className="size-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon-sm" onClick={() => handleDelete(ujian.id)} title="Hapus">
+                        <Trash2 className="size-3.5 text-destructive" />
+                      </Button>
+                    </div>
+                  </div>
+                </Card3D>
               );
             })
           )}
         </div>
       </div>
 
-      {/* Create Exam Dialog */}
+      {/* Create/Edit Exam Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Buat Ujian Baru</DialogTitle>
+            <DialogTitle>{editingId ? "Edit Ujian" : "Buat Ujian Baru"}</DialogTitle>
             <DialogDescription>
-              Isi informasi ujian untuk membuat sesi CBT baru.
+              Pilih mata pelajaran untuk menarik soal dari Bank Soal.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 mt-2">
             <div className="space-y-1.5">
               <Label className="text-xs">Nama Ujian *</Label>
               <Input
-                placeholder="Contoh: UTBK — Matematika XII IPA"
+                placeholder="Contoh: UAS — Matematika MI Kelas 6"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
               />
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Kelas *</Label>
-              <Select value={form.className} onValueChange={(v) => setForm({ ...form, className: v })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih kelas" />
-                </SelectTrigger>
-                <SelectContent>
-                  {KELAS_OPTIONS.map((k) => (
-                    <SelectItem key={k} value={k}>{k}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Mata Pelajaran *</Label>
+                <Select value={form.subject} onValueChange={handleSubjectChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih mapel" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {subjects.map((s) => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Kelas *</Label>
+                <Select value={form.className} onValueChange={(v) => setForm({ ...form, className: v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih kelas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {KELAS.map((k) => (
+                      <SelectItem key={k} value={k}>{k}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
+
             <div className="space-y-1.5">
               <Label className="text-xs">Tanggal *</Label>
               <Input
@@ -333,24 +400,18 @@ export default function Ujian() {
                 onChange={(e) => setForm({ ...form, date: e.target.value })}
               />
             </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Jam Mulai</Label>
-                <Input
-                  type="time"
-                  value={form.startTime}
-                  onChange={(e) => setForm({ ...form, startTime: e.target.value })}
-                />
+                <Input type="time" value={form.startTime} onChange={(e) => setForm({ ...form, startTime: e.target.value })} />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Jam Selesai</Label>
-                <Input
-                  type="time"
-                  value={form.endTime}
-                  onChange={(e) => setForm({ ...form, endTime: e.target.value })}
-                />
+                <Input type="time" value={form.endTime} onChange={(e) => setForm({ ...form, endTime: e.target.value })} />
               </div>
             </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Jumlah Peserta</Label>
@@ -358,43 +419,87 @@ export default function Ujian() {
                   type="number"
                   min={0}
                   placeholder="32"
-                  value={form.total || ""}
-                  onChange={(e) => setForm({ ...form, total: Number(e.target.value) })}
+                  value={form.totalStudents || ""}
+                  onChange={(e) => setForm({ ...form, totalStudents: Number(e.target.value) })}
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">Jumlah Soal</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  placeholder="40"
-                  value={form.questions || ""}
-                  onChange={(e) => setForm({ ...form, questions: Number(e.target.value) })}
-                />
+                <Label className="text-xs">Status</Label>
+                <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as typeof form.status })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="upcoming">Mendatang</SelectItem>
+                    <SelectItem value="active">Berlangsung</SelectItem>
+                    <SelectItem value="finished">Selesai</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Status</Label>
-              <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as typeof form.status })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="upcoming">Mendatang</SelectItem>
-                  <SelectItem value="active">Berlangsung</SelectItem>
-                  <SelectItem value="finished">Selesai</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+
+            {/* Soal picker from bank soal */}
+            {form.subject && (
+              <div className="space-y-2 border rounded-lg p-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold">
+                    Pilih Soal dari Bank Soal ({availableSoal.length} soal "{form.subject}")
+                  </Label>
+                  <Button variant="outline" size="sm" onClick={selectAllSoal} className="text-xs h-7">
+                    {selectedSoal.size === availableSoal.length ? "Batal Pilih" : "Pilih Semua"}
+                  </Button>
+                </div>
+
+                {availableSoal.length === 0 ? (
+                  <p className="text-xs text-muted-foreground py-3 text-center">
+                    Belum ada soal untuk mata pelajaran ini. Tambah di Bank Soal dulu.
+                  </p>
+                ) : (
+                  <>
+                    <div className="max-h-48 overflow-y-auto space-y-1">
+                      {availableSoal.map((s, i) => (
+                        <label
+                          key={s.id}
+                          className={`flex items-start gap-2 p-2 rounded cursor-pointer text-xs transition-colors ${
+                            selectedSoal.has(s.id) ? "bg-primary/10" : "hover:bg-muted"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedSoal.has(s.id)}
+                            onChange={() => toggleSoal(s.id)}
+                            className="mt-0.5 accent-primary"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="truncate">{i + 1}. {s.question}</p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <Badge variant="outline" className="text-[9px]">{s.type}</Badge>
+                              <Badge variant="outline" className="text-[9px]">{s.difficulty}</Badge>
+                            </div>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground text-right">
+                      {selectedSoal.size} soal dipilih
+                    </p>
+                  </>
+                )}
+              </div>
+            )}
           </div>
+
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" size="sm" onClick={() => setDialogOpen(false)}>
-              <X className="size-3.5" />
-              Batal
+              <X className="size-3.5" /> Batal
             </Button>
-            <Button size="sm" onClick={handleCreate} disabled={!form.name || !form.className || !form.date}>
+            <Button
+              size="sm"
+              onClick={handleSave}
+              disabled={!form.name || !form.className || !form.subject || !form.date}
+            >
               <Save className="size-3.5" />
-              Buat Ujian
+              {editingId ? "Simpan" : "Buat Ujian"}
             </Button>
           </div>
         </DialogContent>
