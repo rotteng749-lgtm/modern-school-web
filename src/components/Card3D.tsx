@@ -12,7 +12,7 @@ interface Card3DProps {
  * 3D CSS card — applies subtle rotateX/rotateY on mouse move (desktop).
  * On mobile / touch devices: no tilt, just normal card.
  */
-export function Card3D({ children, className, intensity = 6, onClick }: Card3DProps) {
+export function Card3D({ children, className, intensity = 2, onClick }: Card3DProps) {
   const cardRef = useRef<HTMLDivElement>(null);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -28,7 +28,7 @@ export function Card3D({ children, className, intensity = 6, onClick }: Card3DPr
     const rotateX = (0.5 - y) * intensity * 2;
     const rotateY = (x - 0.5) * intensity * 2;
 
-    card.style.transform = `perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.02)`;
+    card.style.transform = `perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.01)`;
     card.classList.add("tilt-active");
   };
 
