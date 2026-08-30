@@ -53,6 +53,70 @@ function saveUsers(users: Record<string, { password: string; user: LocalUser }>)
   localStorage.setItem("msw-users", JSON.stringify(users));
 }
 
+/* ── Default murid credentials (mirrors Murid.tsx INITIAL_MURID) ── */
+const SEED_MURID = [
+  { name: "Ahmad Fauzi", username: "ahmadfauzi", password: "Ahmd@2026" },
+  { name: "Siti Nurhaliza", username: "sitinur", password: "Siti@2026" },
+  { name: "Budi Pratama", username: "budipra", password: "Budi@2026" },
+  { name: "Dewi Sartika", username: "dewisart", password: "Dewi@2026" },
+  { name: "Eko Prasetyo", username: "ekopra", password: "Eko@2026" },
+  { name: "Fitriani Putri", username: "fitriput", password: "Fitr@2026" },
+];
+
+const SEED_GURU = [
+  { name: "Dr. Ahmad Sudirman, M.Pd", username: "ahmadsudirman", password: "Ahmad@2026" },
+  { name: "Siti Rahmawati, S.Pd", username: "sitirahma", password: "Siti@2026" },
+  { name: "Budi Hartono, M.Sc", username: "budiharto", password: "Budi@2026" },
+  { name: "Dewi Kartika, S.Pd", username: "dewikartika", password: "Dewi@2026" },
+];
+
+/* ── Seed all credentials into msw-users on first load ── */
+function seedAllCredentials() {
+  const users = getUsers();
+  let changed = false;
+
+  // Always seed default murid + guru credentials
+  [...SEED_MURID, ...SEED_GURU].forEach((m) => {
+    if (!users[m.username]) {
+      users[m.username] = {
+        password: m.password,
+        user: { username: m.username, name: m.name, role: SEED_GURU.some((g) => g.username === m.username) ? "guru" : "siswa" },
+      };
+      changed = true;
+    }
+  });
+
+  // Also scan live msw-murid for any additional students
+  try {
+    const raw = localStorage.getItem("msw-murid");
+    if (raw) {
+      const list: Array<{ username?: string; password?: string; name: string; status?: string }> = JSON.parse(raw);
+      list.forEach((m) => {
+        if (m.username && m.password && m.status !== "keluar" && !users[m.username]) {
+          users[m.username] = { password: m.password, user: { username: m.username, name: m.name, role: "siswa" } };
+          changed = true;
+        }
+      });
+    }
+  } catch { /* ignore */ }
+
+  // Scan live msw-guru for any additional teachers
+  try {
+    const raw = localStorage.getItem("msw-guru");
+    if (raw) {
+      const list: Array<{ username?: string; password?: string; name: string; status?: string }> = JSON.parse(raw);
+      list.forEach((g) => {
+        if (g.username && g.password && g.status !== "nonaktif" && !users[g.username]) {
+          users[g.username] = { password: g.password, user: { username: g.username, name: g.name, role: "guru" } };
+          changed = true;
+        }
+      });
+    }
+  } catch { /* ignore */ }
+
+  if (changed) saveUsers(users);
+}
+
 interface AuthCtx {
   user: LocalUser | null;
   isLoading: boolean;
@@ -69,9 +133,10 @@ export function LocalAuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<LocalUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Restore session
+  // Restore session + seed credentials
   useEffect(() => {
     try {
+      seedAllCredentials();
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) setUser(JSON.parse(raw));
     } catch { /* ignore */ }
