@@ -57,7 +57,7 @@ export default function UjianDetail() {
       const raw = localStorage.getItem(UJIAN_KEY);
       if (raw) {
         const list: UjianData[] = JSON.parse(raw);
-        const found = list.find((u) => u.id === id);
+        const found = list.find((u) => String(u.id) === String(id));
         if (found) {
           setUjian(found);
 
@@ -76,8 +76,10 @@ export default function UjianDetail() {
 
           // Calculate time remaining
           const now = new Date();
-          const [sh, sm] = found.startTime.split(":").map(Number);
-          const [eh, em] = found.endTime.split(":").map(Number);
+          const startTime = found.startTime || "08:00";
+          const endTime = found.endTime || "10:00";
+          const [sh, sm] = startTime.split(":").map(Number);
+          const [eh, em] = endTime.split(":").map(Number);
           const startMs = new Date(found.date);
           startMs.setHours(sh, sm, 0, 0);
           const endMs = new Date(found.date);
