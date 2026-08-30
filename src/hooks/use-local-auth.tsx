@@ -79,8 +79,44 @@ export function LocalAuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = useCallback(async (username: string, password: string) => {
+    // 1. Check msw-users (admin, sync'd guru/murid)
     const users = getUsers();
-    const entry = users[username];
+    let entry = users[username];
+
+    // 2. If not found, scan msw-murid for student credentials
+    if (!entry || entry.password !== password) {
+      try {
+        const muridRaw = localStorage.getItem("msw-murid");
+        if (muridRaw) {
+          const muridList: Array<{ username?: string; password?: string; name: string; status?: string }>
+            = JSON.parse(muridRaw);
+          const found = muridList.find(
+            (m) => m.username === username && m.password === password && m.status !== "keluar",
+          );
+          if (found) {
+            entry = { password, user: { username, name: found.name, role: "siswa" } };
+          }
+        }
+      } catch { /* ignore */ }
+    }
+
+    // 3. If not found, scan msw-guru for teacher credentials
+    if (!entry || entry.password !== password) {
+      try {
+        const guruRaw = localStorage.getItem("msw-guru");
+        if (guruRaw) {
+          const guruList: Array<{ username?: string; password?: string; name: string; status?: string }>
+            = JSON.parse(guruRaw);
+          const found = guruList.find(
+            (g) => g.username === username && g.password === password && g.status !== "nonaktif",
+          );
+          if (found) {
+            entry = { password, user: { username, name: found.name, role: "guru" } };
+          }
+        }
+      } catch { /* ignore */ }
+    }
+
     if (!entry || entry.password !== password) {
       return { success: false, error: "Username atau password salah." };
     }
