@@ -15,6 +15,8 @@ import {
   AlertCircle,
   Copy,
   Wand2,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 // Simple static card (no animation)
 import { DashboardShell } from "@/components/DashboardShell";
@@ -97,6 +99,7 @@ export default function BankSoal() {
   const [search, setSearch] = useState("");
   const [filterSubject, setFilterSubject] = useState("all");
   const [filterKelas, setFilterKelas] = useState("all");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   /* ── Add/Edit dialog ── */
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -493,69 +496,87 @@ export default function BankSoal() {
                     : "Tidak ada soal yang cocok dengan pencarian."}
                 </div>
               ) : (
-                filtered.map((s) => (
-                  <div
-                    key={s.id}
-                    className="px-5 py-4 hover:bg-accent/30 transition-colors group"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <p className="text-sm font-medium leading-snug line-clamp-2 flex-1">
-                        {s.question}
-                      </p>
-                      <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="icon-sm" onClick={() => openEdit(s)}>
-                          <Edit className="size-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon-sm" onClick={() => handleDelete(s.id)}>
-                          <Trash2 className="size-3.5 text-destructive" />
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Options preview for Pilihan Ganda */}
-                    {s.type === "Pilihan Ganda" && s.options.length > 0 && (
-                      <div className="mt-2 grid grid-cols-2 gap-1">
-                        {s.options.map((opt, i) => (
-                          <span
-                            key={i}
-                            className={`text-[11px] px-2 py-1 rounded bg-muted/50 ${
-                              s.answer && opt === s.answer
-                                ? "bg-emerald-500/15 text-emerald-600 font-medium"
-                                : "text-muted-foreground"
-                            }`}
+                filtered.map((s, idx) => {
+                  const isExpanded = expandedId === s.id;
+                  return (
+                    <div key={s.id} className="border-b last:border-b-0">
+                      {/* Collapsed row — always visible */}
+                      <div
+                        className="px-5 py-3 flex items-center gap-3 cursor-pointer hover:bg-accent/30 transition-colors"
+                        onClick={() => setExpandedId(isExpanded ? null : s.id)}
+                      >
+                        <span className="flex size-6 shrink-0 items-center justify-center rounded bg-primary/10 text-[10px] font-bold text-primary">
+                          {idx + 1}
+                        </span>
+                        <p className="text-sm font-medium leading-snug line-clamp-1 flex-1">
+                          {s.question}
+                        </p>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <Badge variant="secondary" className="text-[9px]">{s.subject}</Badge>
+                          {s.answer && s.type === "Pilihan Ganda" && (
+                            <Badge variant="secondary" className="text-[9px] bg-emerald-500/10 text-emerald-600">
+                              ✓ {s.answer}
+                            </Badge>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            className="h-7 w-7"
+                            onClick={(e) => { e.stopPropagation(); openEdit(s); }}
                           >
-                            {String.fromCharCode(65 + i)}. {opt}
-                          </span>
-                        ))}
+                            <Edit className="size-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            className="h-7 w-7"
+                            onClick={(e) => { e.stopPropagation(); handleDelete(s.id); }}
+                          >
+                            <Trash2 className="size-3.5 text-destructive" />
+                          </Button>
+                          {isExpanded ? (
+                            <ChevronDown className="size-4 text-muted-foreground" />
+                          ) : (
+                            <ChevronRight className="size-4 text-muted-foreground" />
+                          )}
+                        </div>
                       </div>
-                    )}
 
-                    <div className="mt-2 flex items-center gap-2 flex-wrap">
-                      <Badge variant="secondary" className="text-[10px]">
-                        {s.subject}
-                      </Badge>
-                      {s.className && (
-                        <Badge variant="outline" className="text-[10px]">
-                          {s.className}
-                        </Badge>
+                      {/* Expanded content */}
+                      {isExpanded && (
+                        <div className="px-5 pb-4 ml-9">
+                          <p className="text-sm text-muted-foreground whitespace-pre-wrap mb-3">
+                            {s.question}
+                          </p>
+                          {s.type === "Pilihan Ganda" && s.options.length > 0 && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mb-3">
+                              {s.options.map((opt, i) => (
+                                <span
+                                  key={i}
+                                  className={`text-[11px] px-2.5 py-1.5 rounded-lg border ${
+                                    s.answer && opt === s.answer
+                                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 font-medium"
+                                      : "bg-muted/30 border-border text-muted-foreground"
+                                  }`}
+                                >
+                                  {String.fromCharCode(65 + i)}. {opt}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge variant="outline" className="text-[10px]">{s.type}</Badge>
+                            <Badge className={`text-[10px] ${DIFF_STYLE[s.difficulty]}`}>{s.difficulty}</Badge>
+                            {s.className && (
+                              <Badge variant="outline" className="text-[10px]">{s.className}</Badge>
+                            )}
+                            <span className="text-[10px] text-muted-foreground ml-auto">{timeAgo(s.createdAt)}</span>
+                          </div>
+                        </div>
                       )}
-                      <Badge variant="outline" className="text-[10px]">
-                        {s.type}
-                      </Badge>
-                      <Badge className={`text-[10px] ${DIFF_STYLE[s.difficulty]}`}>
-                        {s.difficulty}
-                      </Badge>
-                      {s.answer && s.type === "Pilihan Ganda" && (
-                        <Badge variant="secondary" className="text-[10px] bg-emerald-500/10 text-emerald-600">
-                          ✓ {s.answer}
-                        </Badge>
-                      )}
-                      <span className="text-[10px] text-muted-foreground ml-auto">
-                        {timeAgo(s.createdAt)}
-                      </span>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>

@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { useParams, Link } from "react-router";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useParams, Link, useNavigate } from "react-router";
 import {
   Clock,
   ChevronLeft,
@@ -10,6 +10,8 @@ import {
   CheckCircle,
   XCircle,
   RotateCcw,
+  AlertTriangle,
+  Maximize,
 } from "lucide-react";
 import { Card3D } from "@/components/Card3D";
 import { DashboardShell } from "@/components/DashboardShell";
@@ -20,7 +22,7 @@ import type { UjianData } from "./Ujian";
 import type { SoalItem } from "./BankSoal";
 
 /* ═══════════════════════════════════════════
-   CBT EXAM — Take exam, answer, submit
+   CBT EXAM — Fullscreen + Anti-cheat
    Yayasan Mambaul Hasan
    ═══════════════════════════════════════════ */
 
@@ -41,6 +43,7 @@ interface ExamResult {
 
 export default function UjianDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [ujian, setUjian] = useState<UjianData | null>(null);
   const [soalList, setSoalList] = useState<SoalItem[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -50,6 +53,13 @@ export default function UjianDetail() {
   const [submitted, setSubmitted] = useState(false);
   const [result, setResult] = useState<ExamResult | null>(null);
   const [confirmSubmit, setConfirmSubmit] = useState(false);
+
+  /* ── Anti-cheat state ── */
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showFullscreenPrompt, setShowFullscreenPrompt] = useState(true);
+  const [backWarning, setBackWarning] = useState(false);
+  const backWarningTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const examStarted = useRef(false);
 
   // Load exam data + soal
   useEffect(() => {
@@ -114,6 +124,132 @@ export default function UjianDetail() {
       }
     } catch { /* ignore */ }
   }, [id]);
+
+  /* ── Fullscreen API ── */
+  const enterFullscreen = useCallback(() => {
+    const el = document.documentElement;
+    if (el.requestFullscreen) {
+      el.requestFullscreen().then(() => {
+        setIsFullscreen(true);
+        setShowFullscreenPrompt(false);
+        examStarted.current = true;
+      }).catch(() => {
+        // User denied fullscreen — still allow exam but warn
+        setShowFullscreenPrompt(false);
+        examStarted.current = true;
+      });
+    } else {
+      setShowFullscreenPrompt(false);
+      examStarted.current = true;
+    }
+  }, []);
+
+  const skipFullscreen = useCallback(() => {
+    setShowFullscreenPrompt(false);
+    examStarted.current = true;
+  }, []);
+
+  useEffect(() => {
+    const onFsChange = () => {
+      const fs = !!document.fullscreenElement;
+      setIsFullscreen(fs);
+      if (!fs && examStarted.current && !submitted) {
+        // Exited fullscreen — try to re-enter
+        try {
+          document.documentElement.requestFullscreen?.();
+        } catch { /* ignore */ }
+      }
+    };
+    document.addEventListener("fullscreenchange", onFsChange);
+    return () => document.removeEventListener("fullscreenchange", onFsChange);
+  }, [submitted]);
+
+  /* ── Anti-cheat: back button detection ── */
+  useEffect(() => {
+    if (!examStarted.current || submitted) return;
+
+    // Push extra history entry so "back" triggers popstate
+    window.history.pushState(null, "", window.location.href);
+
+    const onPopState = () => {
+      // Push again to prevent actual navigation
+      window.history.pushState(null, "", window.location.href);
+
+      if (backWarningTimeout.current) clearTimeout(backWarningTimeout.current);
+      setBackWarning(true);
+      backWarningTimeout.current = setTimeout(() => setBackWarning(false), 3000);
+    };
+
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [submitted]);
+
+  /* ── Anti-cheat: block copy/paste/context menu ── */
+  useEffect(() => {
+    if (!examStarted.current || submitted) return;
+
+    const prevent = (e: Event) => e.preventDefault();
+    const blockKey = (e: KeyboardEvent) => {
+      // Block Ctrl+C, Ctrl+V, Ctrl+X, Ctrl+U, Ctrl+S, F12, Ctrl+Shift+I
+      if (
+        (e.ctrlKey && ["c", "v", "x", "u", "s"].includes(e.key.toLowerCase())) ||
+        (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "i") ||
+        e.key === "F12" ||
+        (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "j")
+      ) {
+        e.preventDefault();
+        return false;
+      }
+    };
+
+    document.addEventListener("copy", prevent);
+    document.addEventListener("cut", prevent);
+    document.addEventListener("paste", prevent);
+    document.addEventListener("contextmenu", prevent);
+    document.addEventListener("keydown", blockKey);
+
+    return () => {
+      document.removeEventListener("copy", prevent);
+      document.removeEventListener("cut", prevent);
+      document.removeEventListener("paste", prevent);
+      document.removeEventListener("contextmenu", prevent);
+      document.removeEventListener("keydown", blockKey);
+    };
+  }, [submitted]);
+
+  /* ── Keyboard shortcut: A-E to select answer ── */
+  useEffect(() => {
+    if (!examStarted.current || submitted || !currentSoal) return;
+    if (currentSoal.type !== "Pilihan Ganda") return;
+
+    const onKey = (e: KeyboardEvent) => {
+      // Only respond if not typing in an input/textarea
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+
+      const key = e.key.toUpperCase();
+      if (["A", "B", "C", "D", "E"].includes(key)) {
+        const idx = key.charCodeAt(0) - 65;
+        if (idx < currentSoal.options.length) {
+          handleAnswer(currentSoal.id, key);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [currentIdx, submitted, soalList]);
+
+  /* ── Disable text selection on the exam body ── */
+  useEffect(() => {
+    if (!examStarted.current || submitted) return;
+    document.body.style.userSelect = "none";
+    document.body.style.webkitUserSelect = "none";
+    return () => {
+      document.body.style.userSelect = "";
+      document.body.style.webkitUserSelect = "";
+    };
+  }, [submitted]);
 
   // Timer countdown
   useEffect(() => {
@@ -209,6 +345,11 @@ export default function UjianDetail() {
     localStorage.removeItem(ANSWER_KEY_PREFIX + id);
     localStorage.removeItem("msw-cbt-flagged-" + id);
     setConfirmSubmit(false);
+
+    // Exit fullscreen on submit
+    if (document.fullscreenElement) {
+      document.exitFullscreen?.().catch(() => {});
+    }
   }, [soalList, answers, ujian, id]);
 
   const handleRetry = () => {
@@ -364,17 +505,57 @@ export default function UjianDetail() {
     );
   }
 
+  // Fullscreen prompt overlay
+  if (showFullscreenPrompt) {
+    return (
+      <DashboardShell>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
+          <div className="text-center max-w-md">
+            <Maximize className="size-16 mx-auto text-primary mb-4" />
+            <h2 className="text-xl font-bold mb-2">Siap Mulai Ujian?</h2>
+            <p className="text-sm text-muted-foreground mb-1">{ujian.name}</p>
+            <p className="text-sm text-muted-foreground">
+              {soalList.length} soal · {ujian.className} · {ujian.subject}
+            </p>
+            <p className="text-xs text-amber-500 mt-3">
+              Layar akan fullscreen untuk mencegah kecurangan. Copy/paste dan tombol developer akan dinonaktifkan.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={() => navigate("/ujian")}>
+              <ArrowLeft className="size-4" /> Batal
+            </Button>
+            <Button onClick={enterFullscreen} className="px-8">
+              <Maximize className="size-4 mr-2" /> Mulai Fullscreen
+            </Button>
+            <Button variant="ghost" onClick={skipFullscreen} className="text-xs text-muted-foreground">
+              Lewati Fullscreen
+            </Button>
+          </div>
+        </div>
+      </DashboardShell>
+    );
+  }
+
   const currentSoalItem = soalList[currentIdx];
   const timerColor = timeLeft < 300 ? "text-red-500" : timeLeft < 900 ? "text-amber-500" : "text-emerald-500";
 
   return (
-    <DashboardShell>
-      <div className="space-y-4">
+    <div className="min-h-screen bg-background" style={{ userSelect: "none", WebkitUserSelect: "none" }}>
+      {/* Back navigation warning */}
+      {backWarning && (
+        <div className="fixed top-0 left-0 right-0 z-[100] bg-red-600 text-white text-center py-2 text-sm font-medium flex items-center justify-center gap-2">
+          <AlertTriangle className="size-4" />
+          Navigasi kembali terdeteksi! Ujian tidak boleh ditinggal.
+        </div>
+      )}
+
+      <div className="max-w-7xl mx-auto px-4 py-3 space-y-3">
         {/* Top bar */}
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2">
-            <Link to="/ujian">
-              <Button variant="ghost" size="icon-sm">
+            <Link to="/ujian" onClick={(e) => e.preventDefault()}>
+              <Button variant="ghost" size="icon-sm" onClick={(e) => { e.preventDefault(); setBackWarning(true); setTimeout(() => setBackWarning(false), 3000); }}>
                 <ArrowLeft className="size-4" />
               </Button>
             </Link>
@@ -406,6 +587,9 @@ export default function UjianDetail() {
                   <div className="flex items-center gap-2 mb-2">
                     <Badge variant="outline" className="text-[10px]">{currentSoalItem.type}</Badge>
                     <Badge variant="outline" className="text-[10px]">{currentSoalItem.difficulty}</Badge>
+                    <span className="text-[10px] text-muted-foreground ml-auto">
+                      Tekan A-E untuk menjawab
+                    </span>
                   </div>
                   <p className="text-sm leading-relaxed whitespace-pre-wrap">{currentSoalItem.question}</p>
                 </div>
@@ -428,7 +612,7 @@ export default function UjianDetail() {
                     return (
                       <label
                         key={oi}
-                        className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                        className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
                           isSelected
                             ? "border-primary bg-primary/10 text-primary"
                             : "border-border hover:border-primary/50 hover:bg-muted"
@@ -499,7 +683,7 @@ export default function UjianDetail() {
               </div>
               <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-primary transition-all"
+                  className="h-full rounded-full bg-primary transition-[width] duration-150"
                   style={{ width: `${(answeredCount / soalList.length) * 100}%` }}
                 />
               </div>
@@ -525,7 +709,7 @@ export default function UjianDetail() {
                     <button
                       key={s.id}
                       onClick={() => setCurrentIdx(i)}
-                      className={`aspect-square rounded-md text-[11px] font-medium transition-all relative ${
+                      className={`aspect-square rounded-md text-[11px] font-medium transition-colors relative ${
                         isCurrent
                           ? "bg-primary text-primary-foreground ring-2 ring-primary/50"
                           : isAnswered
@@ -578,6 +762,6 @@ export default function UjianDetail() {
           </Card3D>
         </div>
       )}
-    </DashboardShell>
+    </div>
   );
 }
