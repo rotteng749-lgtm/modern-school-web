@@ -456,7 +456,7 @@ export default function BankSoal() {
                         toast.success(`Semua soal ${name} berhasil dihapus.`);
                       }
                     }}
-                    className="shrink-0 p-1.5 rounded-md text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100"
+                    className="shrink-0 p-1.5 rounded-md text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors"
                     title={`Hapus semua soal ${name}`}
                   >
                     <Trash2 className="size-3.5" />
