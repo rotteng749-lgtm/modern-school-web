@@ -66,8 +66,8 @@ export default function UjianDetail() {
           if (soalRaw) {
             const allSoal: SoalItem[] = JSON.parse(soalRaw);
             let selected: SoalItem[];
-            if (found.questionIds.length > 0) {
-              selected = allSoal.filter((s) => found.questionIds.includes(s.id));
+            if (found.questionIds && found.questionIds.length > 0) {
+              selected = allSoal.filter((s) => found.questionIds!.includes(s.id));
             } else {
               selected = allSoal.filter((s) => s.subject === found.subject);
             }

@@ -181,7 +181,7 @@ export default function Ujian() {
       questionCount: u.questionCount,
       status: u.status,
     });
-    setSelectedSoal(new Set(u.questionIds));
+    setSelectedSoal(new Set(u.questionIds ?? []));
     setDialogOpen(true);
   };
 
@@ -278,8 +278,7 @@ export default function Ujian() {
               </p>
             </Card3D>
           ) : (
-            filtered.map((ujian) => {
-              const soalCount = ujian.questionIds.length;
+            filtered.map((ujian) => {                      const soalCount = ujian.questionIds?.length ?? 0;
               const isActive = ujian.status === "active";
 
               return (
