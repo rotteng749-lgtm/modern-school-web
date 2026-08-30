@@ -99,7 +99,7 @@ export default function BankSoal() {
   const [search, setSearch] = useState("");
   const [filterSubject, setFilterSubject] = useState("all");
   const [filterKelas, setFilterKelas] = useState("all");
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
 
   /* ── Add/Edit dialog ── */
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -489,94 +489,132 @@ export default function BankSoal() {
           </div>
           <div className="rounded-xl border bg-card text-card-foreground overflow-hidden obsidian-sheen">
             <div className="divide-y">
-              {filtered.length === 0 ? (
+              {                filtered.length === 0 ? (
                 <div className="py-12 text-center text-sm text-muted-foreground">
                   {soalList.length === 0
                     ? "Belum ada soal. Klik \"Tambah Soal\" atau \"Import\"."
                     : "Tidak ada soal yang cocok dengan pencarian."}
                 </div>
               ) : (
-                filtered.map((s, idx) => {
-                  const isExpanded = expandedId === s.id;
-                  return (
-                    <div key={s.id} className="border-b last:border-b-0">
-                      {/* Collapsed row — always visible */}
-                      <div
-                        className="px-5 py-3 flex items-center gap-3 cursor-pointer hover:bg-accent/30 transition-colors"
-                        onClick={() => setExpandedId(isExpanded ? null : s.id)}
-                      >
-                        <span className="flex size-6 shrink-0 items-center justify-center rounded bg-primary/10 text-[10px] font-bold text-primary">
-                          {idx + 1}
-                        </span>
-                        <p className="text-sm font-medium leading-snug line-clamp-1 flex-1">
-                          {s.question}
-                        </p>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <Badge variant="secondary" className="text-[9px]">{s.subject}</Badge>
-                          {s.answer && s.type === "Pilihan Ganda" && (
-                            <Badge variant="secondary" className="text-[9px] bg-emerald-500/10 text-emerald-600">
-                              ✓ {s.answer}
-                            </Badge>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            className="h-7 w-7"
-                            onClick={(e) => { e.stopPropagation(); openEdit(s); }}
-                          >
-                            <Edit className="size-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            className="h-7 w-7"
-                            onClick={(e) => { e.stopPropagation(); handleDelete(s.id); }}
-                          >
-                            <Trash2 className="size-3.5 text-destructive" />
-                          </Button>
-                          {isExpanded ? (
-                            <ChevronDown className="size-4 text-muted-foreground" />
-                          ) : (
-                            <ChevronRight className="size-4 text-muted-foreground" />
-                          )}
-                        </div>
-                      </div>
+                (() => {
+                  // Group questions by subject + className
+                  const groups: Record<string, SoalItem[]> = {};
+                  filtered.forEach((s) => {
+                    const key = `${s.subject}|${s.className || "Semua Kelas"}`;
+                    if (!groups[key]) groups[key] = [];
+                    groups[key].push(s);
+                  });
 
-                      {/* Expanded content */}
-                      {isExpanded && (
-                        <div className="px-5 pb-4 ml-9">
-                          <p className="text-sm text-muted-foreground whitespace-pre-wrap mb-3">
-                            {s.question}
-                          </p>
-                          {s.type === "Pilihan Ganda" && s.options.length > 0 && (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mb-3">
-                              {s.options.map((opt, i) => (
-                                <span
-                                  key={i}
-                                  className={`text-[11px] px-2.5 py-1.5 rounded-lg border ${
-                                    s.answer && opt === s.answer
-                                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 font-medium"
-                                      : "bg-muted/30 border-border text-muted-foreground"
-                                  }`}
-                                >
-                                  {String.fromCharCode(65 + i)}. {opt}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <Badge variant="outline" className="text-[10px]">{s.type}</Badge>
-                            <Badge className={`text-[10px] ${DIFF_STYLE[s.difficulty]}`}>{s.difficulty}</Badge>
-                            {s.className && (
-                              <Badge variant="outline" className="text-[10px]">{s.className}</Badge>
+                  let globalIdx = 0;
+
+                  return Object.entries(groups).map(([groupKey, items]) => {
+                    const [subj, cls] = groupKey.split("|");
+                    const isGroupOpen = expandedGroup === groupKey;
+                    const startIdx = globalIdx;
+                    globalIdx += items.length;
+
+                    return (
+                      <div key={groupKey} className="border-b last:border-b-0">
+                        {/* Group header */}
+                        <div
+                          className="px-5 py-3.5 flex items-center gap-3 cursor-pointer hover:bg-accent/30 transition-colors"
+                          onClick={() => setExpandedGroup(isGroupOpen ? null : groupKey)}
+                        >
+                          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                            <Tag className="size-4" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold">{subj}</p>
+                            <p className="text-[11px] text-muted-foreground">
+                              {cls} · {items.length} soal
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <Badge variant="secondary" className="text-[10px]">
+                              {items.filter((s) => s.type === "Pilihan Ganda").length} PG
+                            </Badge>
+                            <Badge variant="outline" className="text-[10px]">
+                              {items.filter((s) => s.type === "Uraian").length} Uraian
+                            </Badge>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (confirm(`Hapus semua soal ${subj} (${cls})?`)) {
+                                  const ids = new Set(items.map((s) => s.id));
+                                  save(soalList.filter((s) => !ids.has(s.id)));
+                                  toast.success(`Semua soal ${subj} berhasil dihapus.`);
+                                }
+                              }}
+                              className="p-1.5 rounded-md text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                              title={`Hapus semua soal ${subj}`}
+                            >
+                              <Trash2 className="size-3.5" />
+                            </button>
+                            {isGroupOpen ? (
+                              <ChevronDown className="size-4 text-muted-foreground" />
+                            ) : (
+                              <ChevronRight className="size-4 text-muted-foreground" />
                             )}
-                            <span className="text-[10px] text-muted-foreground ml-auto">{timeAgo(s.createdAt)}</span>
                           </div>
                         </div>
-                      )}
-                    </div>
-                  );
-                })
+
+                        {/* Expanded questions inside group */}
+                        {isGroupOpen && (
+                          <div className="divide-y">
+                            {items.map((s) => (
+                              <div key={s.id} className="px-5 py-3 ml-11 hover:bg-accent/20 transition-colors">
+                                <div className="flex items-start gap-3">
+                                  <span className="text-xs font-bold text-muted-foreground shrink-0 mt-0.5">
+                                    {startIdx + items.indexOf(s) + 1}.
+                                  </span>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium leading-snug line-clamp-2">
+                                      {s.question}
+                                    </p>
+                                    {s.type === "Pilihan Ganda" && s.options.length > 0 && (
+                                      <div className="mt-1.5 grid grid-cols-1 sm:grid-cols-2 gap-1">
+                                        {s.options.map((opt, i) => (
+                                          <span
+                                            key={i}
+                                            className={`text-[11px] px-2 py-1 rounded border ${
+                                              s.answer && opt === s.answer
+                                                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 font-medium"
+                                                : "bg-muted/30 border-border text-muted-foreground"
+                                            }`}
+                                          >
+                                            {String.fromCharCode(65 + i)}. {opt}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    )}
+                                    <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+                                      <Badge variant="outline" className="text-[9px]">{s.type}</Badge>
+                                      <Badge className={`text-[9px] ${DIFF_STYLE[s.difficulty]}`}>{s.difficulty}</Badge>
+                                      {s.answer && s.type === "Pilihan Ganda" && (
+                                        <Badge variant="secondary" className="text-[9px] bg-emerald-500/10 text-emerald-600">
+                                          ✓ {s.answer}
+                                        </Badge>
+                                      )}
+                                      <span className="text-[9px] text-muted-foreground ml-auto">{timeAgo(s.createdAt)}</span>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-0.5 shrink-0">
+                                    <Button variant="ghost" size="icon-sm" className="h-7 w-7" onClick={() => openEdit(s)}>
+                                      <Edit className="size-3.5" />
+                                    </Button>
+                                    <Button variant="ghost" size="icon-sm" className="h-7 w-7" onClick={() => handleDelete(s.id)}>
+                                      <Trash2 className="size-3.5 text-destructive" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  });
+                })()
               )}
             </div>
           </div>
