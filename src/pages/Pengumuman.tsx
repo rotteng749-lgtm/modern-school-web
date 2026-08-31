@@ -33,6 +33,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { useLocalAuth } from "@/hooks/use-local-auth";
+import { Badge } from "@/components/ui/badge";
 
 /* ═══════════════════════════════════════════
    PENGUMUMAN (Announcements) — CRUD
@@ -129,12 +131,21 @@ export default function Pengumuman() {
     saveArticles(articles);
   }, [articles]);
 
-  const filtered = articles.filter(
-    (a) =>
+  const { user } = useLocalAuth();
+  const isStudent = user?.role === "siswa" || user?.role === "orangtua";
+
+  const filtered = articles.filter((a) => {
+    // Students/orangtua: show only regular articles + their own exam results
+    if (isStudent) {
+      const isExamResult = (a as Record<string, unknown>).studentUsername;
+      if (isExamResult && (a as Record<string, unknown>).studentUsername !== user?.username) return false;
+    }
+    return (
       a.title.toLowerCase().includes(search.toLowerCase()) ||
       a.category.toLowerCase().includes(search.toLowerCase()) ||
       a.excerpt.toLowerCase().includes(search.toLowerCase())
-  );
+    );
+  });
 
   const openCreate = () => {
     setEditingId(null);
@@ -212,10 +223,12 @@ export default function Pengumuman() {
                 className="pl-9 sm:w-64"
               />
             </div>
-            <Button onClick={openCreate} size="sm" className="rounded-full shrink-0">
-              <Plus className="size-3.5" />
-              Baru
-            </Button>
+            {!isStudent && (
+              <Button onClick={openCreate} size="sm" className="rounded-full shrink-0">
+                <Plus className="size-3.5" />
+                Baru
+              </Button>
+            )}
           </div>
         </div>
 
@@ -262,6 +275,17 @@ export default function Pengumuman() {
                       {!article.isPublished && (
                         <Badge variant="outline" className="text-[10px]">Draft</Badge>
                       )}
+                      {(article as Record<string, unknown>).examScore !== undefined && (
+                        <Badge variant="secondary" className={`text-[10px] font-bold ${
+                          ((article as Record<string, unknown>).examScore as number) >= 80
+                            ? "bg-emerald-500/15 text-emerald-500"
+                            : ((article as Record<string, unknown>).examScore as number) >= 60
+                            ? "bg-blue-500/15 text-blue-500"
+                            : "bg-red-500/15 text-red-500"
+                        }`}>
+                          Nilai: {(article as Record<string, unknown>).examScore}%
+                        </Badge>
+                      )}
                     </div>
                     <h3 className="font-semibold text-sm sm:text-base">{article.title}</h3>
                     <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
@@ -278,14 +302,16 @@ export default function Pengumuman() {
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <Button variant="ghost" size="icon-sm" onClick={() => openEdit(article)}>
-                      <Edit className="size-3.5" />
-                    </Button>
-                    <Button variant="ghost" size="icon-sm" onClick={() => handleDelete(article.id)}>
-                      <Trash2 className="size-3.5 text-destructive" />
-                    </Button>
-                  </div>
+                  {!isStudent && (
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button variant="ghost" size="icon-sm" onClick={() => openEdit(article)}>
+                        <Edit className="size-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon-sm" onClick={() => handleDelete(article.id)}>
+                        <Trash2 className="size-3.5 text-destructive" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
             </Card3D>

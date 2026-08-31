@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import type { UjianData } from "./Ujian";
 import type { SoalItem } from "./BankSoal";
+import { useLocalAuth } from "@/hooks/use-local-auth";
 
 /* ═══════════════════════════════════════════
    CBT EXAM — Fullscreen + Anti-cheat
@@ -53,6 +54,7 @@ export default function UjianDetail() {
   const [submitted, setSubmitted] = useState(false);
   const [result, setResult] = useState<ExamResult | null>(null);
   const [confirmSubmit, setConfirmSubmit] = useState(false);
+  const { user: currentUser } = useLocalAuth();
 
   /* ── Anti-cheat state ── */
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -345,6 +347,29 @@ export default function UjianDetail() {
     localStorage.removeItem(ANSWER_KEY_PREFIX + id);
     localStorage.removeItem("msw-cbt-flagged-" + id);
     setConfirmSubmit(false);
+
+    // Auto-post exam result to Pengumuman so student can see it
+    try {
+      const pengumumanKey = "msw-pengumuman";
+      const existing: unknown[] = JSON.parse(localStorage.getItem(pengumumanKey) || "[]");
+      const scoreEmoji = score >= 80 ? "🏆" : score >= 60 ? "✅" : "📝";
+      const newPengumuman = {
+        id: `ujian-${id}-${Date.now()}`,
+        title: `${scoreEmoji} Hasil Ujian: ${ujian.name}`,
+        category: "Akademik",
+        excerpt: `Nilai: ${score}% — ${correct} benar, ${wrong} salah, ${unanswered} kosong dari ${soalList.length} soal`,
+        content: `Hasil Ujian: ${ujian.name}\nMata Pelajaran: ${ujian.subject}\nKelas: ${ujian.className || "-"}\n\nNilai: ${score}%\nBenar: ${correct}\nSalah: ${wrong}\nKosong: ${unanswered}\nTotal: ${soalList.length} soal\n\nDikerjakan: ${new Date().toLocaleString("id-ID")}`,
+        views: 0,
+        publishedAt: new Date().toISOString().split("T")[0],
+        isPublished: true,
+        // Attach student info for filtering
+        studentUsername: currentUser?.username || "",
+        studentName: currentUser?.name || "",
+        examId: id,
+        examScore: score,
+      };
+      localStorage.setItem(pengumumanKey, JSON.stringify([newPengumuman, ...existing]));
+    } catch { /* ignore */ }
 
     // Exit fullscreen on submit
     if (document.fullscreenElement) {

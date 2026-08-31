@@ -17,6 +17,7 @@ import { YmhLogo } from "@/components/YmhLogo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useLocalAuth } from "@/hooks/use-local-auth";
 import { toast } from "sonner";
 
 /* ═══════════════════════════════════════════
@@ -62,6 +63,8 @@ const STAT_CONFIG: { key: keyof ProfilData; label: string; icon: typeof Users }[
 ];
 
 export default function Profil() {
+  const { user } = useLocalAuth();
+  const isReadOnly = user?.role === "siswa" || user?.role === "orangtua";
   const [data, setData] = useState<ProfilData>(DEFAULT_DATA);
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState<ProfilData>(DEFAULT_DATA);
@@ -100,22 +103,24 @@ export default function Profil() {
               Informasi dasar dan konfigurasi sekolah
             </p>
           </div>
-          {editing ? (
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" className="rounded-full" onClick={handleCancel}>
-                <X className="size-3.5" />
-                Batal
+          {!isReadOnly && (
+            editing ? (
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" className="rounded-full" onClick={handleCancel}>
+                  <X className="size-3.5" />
+                  Batal
+                </Button>
+                <Button size="sm" className="rounded-full" onClick={handleSave}>
+                  <Save className="size-3.5" />
+                  Simpan
+                </Button>
+              </div>
+            ) : (
+              <Button variant="outline" size="sm" className="rounded-full" onClick={() => setEditing(true)}>
+                <Edit className="size-3.5" />
+                Edit
               </Button>
-              <Button size="sm" className="rounded-full" onClick={handleSave}>
-                <Save className="size-3.5" />
-                Simpan
-              </Button>
-            </div>
-          ) : (
-            <Button variant="outline" size="sm" className="rounded-full" onClick={() => setEditing(true)}>
-              <Edit className="size-3.5" />
-              Edit
-            </Button>
+            )
           )}
         </div>
 
