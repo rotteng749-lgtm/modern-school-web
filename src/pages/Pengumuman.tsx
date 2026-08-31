@@ -34,7 +34,6 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useLocalAuth } from "@/hooks/use-local-auth";
-import { Badge } from "@/components/ui/badge";
 
 /* ═══════════════════════════════════════════
    PENGUMUMAN (Announcements) — CRUD
@@ -48,6 +47,8 @@ interface Article {
   category: string;
   excerpt: string;
   content: string;
+  studentUsername?: string;
+  examScore?: number;
   views: number;
   publishedAt: string;
   isPublished: boolean;
@@ -137,8 +138,8 @@ export default function Pengumuman() {
   const filtered = articles.filter((a) => {
     // Students/orangtua: show only regular articles + their own exam results
     if (isStudent) {
-      const isExamResult = (a as Record<string, unknown>).studentUsername;
-      if (isExamResult && (a as Record<string, unknown>).studentUsername !== user?.username) return false;
+      const isExamResult = !!a.studentUsername;
+      if (isExamResult && a.studentUsername !== user?.username) return false;
     }
     return (
       a.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -275,15 +276,15 @@ export default function Pengumuman() {
                       {!article.isPublished && (
                         <Badge variant="outline" className="text-[10px]">Draft</Badge>
                       )}
-                      {(article as Record<string, unknown>).examScore !== undefined && (
+                      {article.examScore !== undefined && (
                         <Badge variant="secondary" className={`text-[10px] font-bold ${
-                          ((article as Record<string, unknown>).examScore as number) >= 80
+                          article.examScore >= 80
                             ? "bg-emerald-500/15 text-emerald-500"
-                            : ((article as Record<string, unknown>).examScore as number) >= 60
+                            : article.examScore >= 60
                             ? "bg-blue-500/15 text-blue-500"
                             : "bg-red-500/15 text-red-500"
                         }`}>
-                          Nilai: {(article as Record<string, unknown>).examScore}%
+                          Nilai: {article.examScore}%
                         </Badge>
                       )}
                     </div>
