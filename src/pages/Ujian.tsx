@@ -69,6 +69,27 @@ const KELAS = [
   "MI Kelas 4", "MI Kelas 5", "MI Kelas 6",
 ];
 
+/** 24-hour time options (00:00 – 23:30, every 30 minutes). Native <input
+ *  type="time"> follows the OS/browser locale and can show AM/PM, so the
+ *  dialog uses an explicit HH:MM picker instead. */
+const TIME_OPTIONS = Array.from({ length: 48 }, (_, i) => {
+  const h = Math.floor(i / 2);
+  const m = (i % 2) * 30;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+});
+
+/** Snap a stored HH:MM (e.g. legacy "07:45") to the nearest 30-min option. */
+function snapTime(t?: string): string {
+  if (!t) return "08:00";
+  const [h, m] = t.split(":").map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m) || h < 0 || h > 23 || m < 0 || m > 59) return "08:00";
+  let mins = h * 60 + m;
+  mins = Math.min(1410, Math.max(0, Math.round(mins / 30) * 30));
+  const hh = String(Math.floor(mins / 60)).padStart(2, "0");
+  const mm = String(mins % 60).padStart(2, "0");
+  return `${hh}:${mm}`;
+}
+
 const INITIAL_UJIAN: UjianData[] = [
   {
     id: "1", name: "Ujian Akhir Semester — Matematika", className: "MI Kelas 6",
@@ -122,8 +143,8 @@ export default function Ujian() {
           ...u,
           subject: u.subject ?? "",
           questionIds: u.questionIds ?? [],
-          startTime: u.startTime ?? "08:00",
-          endTime: u.endTime ?? "10:00",
+          startTime: snapTime(u.startTime),
+          endTime: snapTime(u.endTime),
         }));
         setUjianList(migrated);
       } else {
@@ -197,8 +218,8 @@ export default function Ujian() {
       className: u.className,
       subject: u.subject,
       date: u.date,
-      startTime: u.startTime,
-      endTime: u.endTime,
+      startTime: snapTime(u.startTime),
+      endTime: snapTime(u.endTime),
       totalStudents: u.totalStudents,
       questionCount: u.questionCount,
       status: u.status,
@@ -449,12 +470,30 @@ export default function Ujian() {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs">Jam Mulai</Label>
-                <Input type="time" value={form.startTime} onChange={(e) => setForm({ ...form, startTime: e.target.value })} />
+                <Label className="text-xs">Jam Mulai (24 jam)</Label>
+                <Select value={form.startTime} onValueChange={(v) => setForm({ ...form, startTime: v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="08:00" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {TIME_OPTIONS.map((t) => (
+                      <SelectItem key={`s-${t}`} value={t}>{t}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">Jam Selesai</Label>
-                <Input type="time" value={form.endTime} onChange={(e) => setForm({ ...form, endTime: e.target.value })} />
+                <Label className="text-xs">Jam Selesai (24 jam)</Label>
+                <Select value={form.endTime} onValueChange={(v) => setForm({ ...form, endTime: v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="10:00" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {TIME_OPTIONS.map((t) => (
+                      <SelectItem key={`e-${t}`} value={t}>{t}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
