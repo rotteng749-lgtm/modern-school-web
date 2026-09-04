@@ -14,10 +14,144 @@ import {
   BarChart3,
   AlertCircle,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Card3D } from "@/components/Card3D";
 import { DashboardShell } from "@/components/DashboardShell";
 import { Badge } from "@/components/ui/badge";
 import { useLocalAuth } from "@/hooks/use-local-auth";
+import { getSubjects } from "@/lib/subjects-store";
+
+/* ── Live data helpers (reads the same localStorage stores as the feature pages) ── */
+interface LiveData {
+  muridAktif: number;
+  muridTotal: number;
+  guruAktif: number;
+  guruTotal: number;
+  ujianAktif: number;
+  ujianTotal: number;
+  soalTotal: number;
+  mapelTotal: number;
+  hadirPct: number | null; // today's attendance % from msw-absensi
+  lulusPct: number;
+  myHadirPct: number | null; // personal attendance % (siswa/orangtua)
+  child: { name: string; className: string; nisn: string } | null;
+}
+
+interface StatusRow {
+  status: string;
+  id: string;
+  name?: string;
+  username?: string;
+  parentName?: string;
+  className?: string;
+  nisn?: string;
+}
+
+function readList(key: string): StatusRow[] {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch { /* ignore */ }
+  return [];
+}
+
+function fmt(n: number) {
+  return n.toLocaleString("id-ID");
+}
+
+function collectLive(username?: string, childId?: string, name?: string): LiveData {
+  // Murid / guru fallback sample (mirrors the defaults seeded on their pages)
+  const DEFAULT_MURID: StatusRow[] = [
+    { id: "1", status: "aktif", name: "Ahmad Fauzi", username: "ahmadfauzi" },
+    { id: "2", status: "aktif", name: "Siti Nurhaliza", username: "sitinur" },
+    { id: "3", status: "aktif", name: "Budi Pratama", username: "budipra" },
+    { id: "4", status: "aktif", name: "Dewi Sartika", username: "dewisart" },
+    { id: "5", status: "lulus", name: "Eko Prasetyo", username: "ekopra" },
+    { id: "6", status: "aktif", name: "Fitriani Putri", username: "fitriput" },
+  ];
+  const DEFAULT_GURU: StatusRow[] = [
+    { id: "1", status: "aktif", name: "Dr. Ahmad Sudirman, M.Pd", username: "ahmadsudirman" },
+    { id: "2", status: "aktif", name: "Siti Rahmawati, S.Pd", username: "sitirahma" },
+    { id: "3", status: "aktif", name: "Budi Hartono, M.Sc", username: "budiharto" },
+    { id: "4", status: "nonaktif", name: "Dewi Kartika, S.Pd", username: "dewikartika" },
+  ];
+  const DEFAULT_UJIAN: StatusRow[] = [
+    { id: "1", status: "finished" },
+    { id: "2", status: "active" },
+  ];
+
+  const muridRaw = readList("msw-murid");
+  const guruRaw = readList("msw-guru");
+  const ujianRaw = readList("msw-ujian");
+  const murid = muridRaw.length ? muridRaw : DEFAULT_MURID;
+  const guru = guruRaw.length ? guruRaw : DEFAULT_GURU;
+  const ujian = ujianRaw.length ? ujianRaw : DEFAULT_UJIAN;
+
+  let soalTotal = 0;
+  try {
+    const raw = localStorage.getItem("msw-bank-soal");
+    if (raw) soalTotal = JSON.parse(raw).length;
+  } catch { /* ignore */ }
+
+  const lulus = murid.filter((m) => m.status === "lulus").length;
+
+  // Today attendance % (msw-absensi: Record<date, Record<id, status>>)
+  let hadirPct: number | null = null;
+  let myHadirPct: number | null = null;
+  try {
+    const d = new Date();
+    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const raw = localStorage.getItem("msw-absensi");
+    if (raw) {
+      const map = JSON.parse(raw);
+      const day = map?.[iso];
+      if (day && typeof day === "object") {
+        let total = 0;
+        let hadir = 0;
+        let myTotal = 0;
+        let myHadir = 0;
+        Object.keys(day).forEach((id) => {
+          const m = murid.find((x) => x.id === id);
+          if (!m) return;
+          total++;
+          if (day[id] === "hadir" || day[id] === "terlambat") hadir++;
+          const mine =
+            (username && m.username === username) ||
+            (childId && m.id === childId) ||
+            (name && m.name?.toLowerCase().includes(name.toLowerCase()));
+          if (mine) {
+            myTotal++;
+            if (day[id] === "hadir" || day[id] === "terlambat") myHadir++;
+          }
+        });
+        if (total > 0) hadirPct = Math.round((hadir / total) * 100);
+        if (myTotal > 0) myHadirPct = Math.round((myHadir / myTotal) * 100);
+      }
+    }
+  } catch { /* ignore */ }
+
+  const child = murid.find(
+    (m) => (childId && m.id === childId) || (username && m.username === username) || (name && m.name?.toLowerCase().includes(name.toLowerCase())),
+  ) ?? null;
+
+  return {
+    muridAktif: murid.filter((m) => m.status === "aktif").length,
+    muridTotal: murid.length,
+    guruAktif: guru.filter((g) => g.status === "aktif").length,
+    guruTotal: guru.length,
+    ujianAktif: ujian.filter((u) => u.status === "active").length,
+    ujianTotal: ujian.length,
+    soalTotal,
+    mapelTotal: getSubjects().length,
+    hadirPct,
+    lulusPct: murid.length > 0 ? Math.round((lulus / murid.length) * 100) : 0,
+    myHadirPct,
+    child: child ? { name: child.name ?? "", className: child.className ?? "", nisn: child.nisn ?? "" } : null,
+  };
+}
 
 /* ═══════════════════════════════════════════
    DASHBOARD — Role-based content
@@ -126,6 +260,65 @@ const SCHEDULE_STATUS: Record<string, { label: string; color: string }> = {
 export default function Dashboard() {
   const { user } = useLocalAuth();
   const role = user?.role ?? "admin";
+  const [live, setLive] = useState<LiveData | null>(null);
+
+  useEffect(() => {
+    setLive(collectLive(user?.username, user?.childId, user?.name));
+  }, [user?.username, user?.childId, user?.name]);
+
+  const child = live?.child ?? null;
+
+  /* Role stat cards — live values with static fallback */
+  const adminStats = [
+    {
+      ...ADMIN_STATS[0],
+      value: live ? fmt(live.muridAktif) : "0",
+      change: live ? `${live.muridTotal} total terdaftar` : "Total siswa",
+    },
+    {
+      ...ADMIN_STATS[1],
+      value: live ? String(live.ujianAktif) : "0",
+      change: live ? `${live.ujianTotal} total ujian` : "Total ujian",
+    },
+    {
+      ...ADMIN_STATS[2],
+      value: live ? fmt(live.soalTotal) : "0",
+      change: live ? `${live.mapelTotal} mata pelajaran` : "Total soal",
+    },
+    {
+      label: "Guru Aktif",
+      value: live ? fmt(live.guruAktif) : "0",
+      change: live ? `${live.guruTotal} terdaftar` : "Tenaga pengajar",
+      positive: true,
+      icon: Users,
+      color: "text-sky-500",
+      bg: "bg-sky-500/10",
+    },
+  ];
+
+  const guruStats = GURU_STATS.map((s, i) => {
+    if (i === 1) {
+      return { ...s, value: live ? String(live.ujianAktif) : s.value, change: live ? `${live.ujianTotal} total ujian` : s.change };
+    }
+    if (i === 2) {
+      return { ...s, value: live ? fmt(live.soalTotal) : s.value, change: live ? `${live.mapelTotal} mapel` : s.change };
+    }
+    return s;
+  });
+
+  const siswaStats = SISWA_STATS.map((s, i) =>
+    i === 2 && live?.myHadirPct != null ? { ...s, value: `${live.myHadirPct}%`, change: "Kehadiran Anda" } : s,
+  );
+
+  const adminAnalytics = ADMIN_ANALYTICS.map((a, i) => {
+    if (i === 0 && live?.hadirPct != null) return { ...a, value: live.hadirPct };
+    if (i === 1 && live?.lulusPct != null) return { ...a, value: live.lulusPct };
+    return a;
+  });
+
+  const childInitials = child?.name
+    ? child.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase()
+    : "AF";
 
   return (
     <DashboardShell>
@@ -150,7 +343,7 @@ export default function Dashboard() {
           <>
             {/* Stats */}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {ADMIN_STATS.map((stat) => (
+              {adminStats.map((stat) => (
                 <Card3D key={stat.label} intensity={4} className="p-5 obsidian-sheen">
                   <div className="flex items-start justify-between">
                     <div className={`flex size-10 items-center justify-center rounded-xl ${stat.bg}`}>
@@ -230,7 +423,7 @@ export default function Dashboard() {
               </h2>
               <Card3D intensity={2} className="p-5 obsidian-sheen">
                 <div className="grid gap-4 sm:grid-cols-2">
-                  {ADMIN_ANALYTICS.map((a) => (
+                  {adminAnalytics.map((a) => (
                     <div key={a.label}>
                       <div className="flex items-center justify-between mb-1.5">
                         <p className="text-xs font-medium">{a.label}</p>
@@ -274,7 +467,7 @@ export default function Dashboard() {
           <>
             {/* Stats */}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {GURU_STATS.map((stat) => (
+              {guruStats.map((stat) => (
                 <Card3D key={stat.label} intensity={4} className="p-5 obsidian-sheen">
                   <div className="flex items-start justify-between">
                     <div className={`flex size-10 items-center justify-center rounded-xl ${stat.bg}`}>
@@ -350,7 +543,7 @@ export default function Dashboard() {
         {role === "orangtua" && (
           <>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {SISWA_STATS.map((stat) => (
+              {siswaStats.map((stat) => (
                 <Card3D key={stat.label} intensity={4} className="p-5 obsidian-sheen">
                   <div className="flex items-start justify-between">
                     <div className={`flex size-10 items-center justify-center rounded-xl ${stat.bg}`}>
@@ -368,12 +561,14 @@ export default function Dashboard() {
               <h2 className="mb-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Data Anak</h2>
               <Card3D intensity={2} className="p-5 obsidian-sheen">
                 <div className="flex items-center gap-4">
-                  <div className="flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary text-xl font-bold">
-                    AF
+                  <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary text-xl font-bold">
+                    {childInitials}
                   </div>
-                  <div>
-                    <p className="text-lg font-bold">Ahmad Fauzi</p>
-                    <p className="text-sm text-muted-foreground">MI Kelas 6 · NISN: 0081234001</p>
+                  <div className="min-w-0">
+                    <p className="text-lg font-bold truncate">{child?.name ?? "Ahmad Fauzi"}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {child ? `${child.className} · NISN ${child.nisn}` : "MI Kelas 6 · NISN: 0081234001"}
+                    </p>
                     <p className="text-xs text-muted-foreground mt-0.5">Status: <span className="text-emerald-500 font-medium">Aktif</span></p>
                   </div>
                 </div>
@@ -419,7 +614,7 @@ export default function Dashboard() {
           <>
             {/* Stats */}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {SISWA_STATS.map((stat) => (
+              {siswaStats.map((stat) => (
                 <Card3D key={stat.label} intensity={4} className="p-5 obsidian-sheen">
                   <div className="flex items-start justify-between">
                     <div className={`flex size-10 items-center justify-center rounded-xl ${stat.bg}`}>
