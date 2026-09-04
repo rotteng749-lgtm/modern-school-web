@@ -12,6 +12,11 @@ import {
   RotateCcw,
   AlertTriangle,
   Maximize,
+  Monitor,
+  Calendar,
+  Users,
+  BookOpen,
+  ClipboardCheck,
 } from "lucide-react";
 import { Card3D } from "@/components/Card3D";
 import { DashboardShell } from "@/components/DashboardShell";
@@ -61,7 +66,7 @@ export default function UjianDetail() {
   const [showFullscreenPrompt, setShowFullscreenPrompt] = useState(true);
   const [backWarning, setBackWarning] = useState(false);
   const backWarningTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const examStarted = useRef(false);
+  const [started, setStarted] = useState(false);
 
   // Load exam data + soal
   useEffect(() => {
@@ -134,28 +139,28 @@ export default function UjianDetail() {
       el.requestFullscreen().then(() => {
         setIsFullscreen(true);
         setShowFullscreenPrompt(false);
-        examStarted.current = true;
+        setStarted(true);
       }).catch(() => {
         // User denied fullscreen — still allow exam but warn
         setShowFullscreenPrompt(false);
-        examStarted.current = true;
+        setStarted(true);
       });
     } else {
       setShowFullscreenPrompt(false);
-      examStarted.current = true;
+      setStarted(true);
     }
   }, []);
 
   const skipFullscreen = useCallback(() => {
     setShowFullscreenPrompt(false);
-    examStarted.current = true;
+    setStarted(true);
   }, []);
 
   useEffect(() => {
     const onFsChange = () => {
       const fs = !!document.fullscreenElement;
       setIsFullscreen(fs);
-      if (!fs && examStarted.current && !submitted) {
+      if (!fs && started && !submitted) {
         // Exited fullscreen — try to re-enter
         try {
           document.documentElement.requestFullscreen?.();
@@ -164,11 +169,11 @@ export default function UjianDetail() {
     };
     document.addEventListener("fullscreenchange", onFsChange);
     return () => document.removeEventListener("fullscreenchange", onFsChange);
-  }, [submitted]);
+  }, [started, submitted]);
 
   /* ── Anti-cheat: back button detection ── */
   useEffect(() => {
-    if (!examStarted.current || submitted) return;
+    if (!started || submitted) return;
 
     // Push extra history entry so "back" triggers popstate
     window.history.pushState(null, "", window.location.href);
@@ -184,11 +189,11 @@ export default function UjianDetail() {
 
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
-  }, [submitted]);
+  }, [started, submitted]);
 
   /* ── Anti-cheat: block copy/paste/context menu ── */
   useEffect(() => {
-    if (!examStarted.current || submitted) return;
+    if (!started || submitted) return;
 
     const prevent = (e: Event) => e.preventDefault();
     const blockKey = (e: KeyboardEvent) => {
@@ -217,11 +222,11 @@ export default function UjianDetail() {
       document.removeEventListener("contextmenu", prevent);
       document.removeEventListener("keydown", blockKey);
     };
-  }, [submitted]);
+  }, [started, submitted]);
 
   /* ── Keyboard shortcut: A-E to select answer ── */
   useEffect(() => {
-    if (!examStarted.current || submitted || !currentSoal) return;
+    if (!started || submitted || !currentSoal) return;
     if (currentSoal.type !== "Pilihan Ganda") return;
 
     const onKey = (e: KeyboardEvent) => {
@@ -240,22 +245,22 @@ export default function UjianDetail() {
 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [currentIdx, submitted, soalList]);
+  }, [started, currentIdx, submitted, soalList]);
 
   /* ── Disable text selection on the exam body ── */
   useEffect(() => {
-    if (!examStarted.current || submitted) return;
+    if (!started || submitted) return;
     document.body.style.userSelect = "none";
     document.body.style.webkitUserSelect = "none";
     return () => {
       document.body.style.userSelect = "";
       document.body.style.webkitUserSelect = "";
     };
-  }, [submitted]);
+  }, [started, submitted]);
 
-  // Timer countdown
+  // Timer countdown — only runs after the student actually starts the exam
   useEffect(() => {
-    if (submitted || timeLeft <= 0) return;
+    if (!started || submitted || timeLeft <= 0) return;
     const timer = setInterval(() => {
       setTimeLeft((t) => {
         if (t <= 1) {
@@ -268,7 +273,7 @@ export default function UjianDetail() {
     }, 1000);
     return () => clearInterval(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [submitted, timeLeft]);
+  }, [started, submitted, timeLeft]);
 
   // Auto-save answers
   useEffect(() => {
@@ -308,7 +313,9 @@ export default function UjianDetail() {
   };
 
   const handleSubmit = useCallback(() => {
-    if (!soalList.length || !ujian) return;
+    // Only the student taking the exam may submit — guards against
+    // stray calls (e.g. timer) while the prompt/monitor view is open.
+    if (!started || submitted || !soalList.length || !ujian) return;
 
     let correct = 0;
     let wrong = 0;
@@ -347,6 +354,7 @@ export default function UjianDetail() {
     localStorage.removeItem(ANSWER_KEY_PREFIX + id);
     localStorage.removeItem("msw-cbt-flagged-" + id);
     setConfirmSubmit(false);
+    setStarted(false);
 
     // Auto-post exam result to Pengumuman so student can see it
     try {
@@ -358,7 +366,7 @@ export default function UjianDetail() {
         title: `${scoreEmoji} Hasil Ujian: ${ujian.name}`,
         category: "Akademik",
         excerpt: `Nilai: ${score}% — ${correct} benar, ${wrong} salah, ${unanswered} kosong dari ${soalList.length} soal`,
-        content: `Hasil Ujian: ${ujian.name}\nMata Pelajaran: ${ujian.subject}\nKelas: ${ujian.className || "-"}\n\nNilai: ${score}%\nBenar: ${correct}\nSalah: ${wrong}\nKosong: ${unanswered}\nTotal: ${soalList.length} soal\n\nDikerjakan: ${new Date().toLocaleString("id-ID")}`,
+        content: `Hasil Ujian: ${ujian.name}\nMata Pelajaran: ${ujian.subject}\nKelas: ${ujian.className || "-"}\n\nNilai: ${score}%\nBenar: ${correct}\nSalah: ${wrong}\nKosong: ${unanswered}\nTotal: ${soalList.length} soal\n\nDikerjakan: ${new Date().toLocaleString("id-ID", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false })}`,
         views: 0,
         publishedAt: new Date().toISOString().split("T")[0],
         isPublished: true,
@@ -375,7 +383,7 @@ export default function UjianDetail() {
     if (document.fullscreenElement) {
       document.exitFullscreen?.().catch(() => {});
     }
-  }, [soalList, answers, ujian, id]);
+  }, [soalList, answers, ujian, id, started, submitted]);
 
   const handleRetry = () => {
     setAnswers({});
@@ -384,11 +392,17 @@ export default function UjianDetail() {
     setSubmitted(false);
     setResult(null);
     setShowFullscreenPrompt(true);
-    examStarted.current = false;
+    setStarted(false);
     localStorage.removeItem(RESULT_KEY_PREFIX + id);
     localStorage.removeItem(ANSWER_KEY_PREFIX + id);
     localStorage.removeItem("msw-cbt-flagged-" + id);
   };
+
+  // Role gating: only siswa take the exam; admin/guru/orangtua monitor
+  const role = currentUser?.role ?? "siswa";
+  const canTake = role === "siswa";
+  const isMonitor = !canTake;
+  const staffView = role === "admin" || role === "guru";
 
   // Loading / not found
   if (!ujian) {
@@ -401,6 +415,140 @@ export default function UjianDetail() {
               <ArrowLeft className="size-4" /> Kembali
             </Button>
           </Link>
+        </div>
+      </DashboardShell>
+    );
+  }
+
+  // ── MONITOR MODE — guru/admin/orangtua cannot take the exam ──
+  if (isMonitor) {
+    const dateLabel = (() => {
+      try {
+        return new Date(`${ujian.date}T00:00:00`).toLocaleDateString("id-ID", {
+          weekday: "long", day: "numeric", month: "long", year: "numeric",
+        });
+      } catch {
+        return ujian.date;
+      }
+    })();
+    const durasi = ujian.startTime && ujian.endTime ? `${ujian.startTime} – ${ujian.endTime} WIB` : "—";
+    const isActive = ujian.status === "active";
+
+    return (
+      <DashboardShell>
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <Link to="/ujian">
+                <Button variant="outline" size="icon-sm" aria-label="Kembali ke daftar ujian">
+                  <ArrowLeft className="size-4" />
+                </Button>
+              </Link>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-2xl font-bold tracking-tight">{ujian.name}</h1>
+                  <Badge className="text-[10px] bg-sky-500/15 text-sky-500">
+                    <Monitor className="size-3" /> Mode Monitoring
+                  </Badge>
+                </div>
+                <p className="mt-0.5 text-sm text-muted-foreground">
+                  Anda hanya bisa memantau — ujian dikerjakan oleh siswa.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Info summary */}
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-xl border bg-card p-4 shadow-xs">
+              <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                <BookOpen className="size-4 text-primary" /> Mata Pelajaran
+              </div>
+              <p className="mt-1.5 text-sm font-bold">{ujian.subject}</p>
+              <p className="text-xs text-muted-foreground">{ujian.className}</p>
+            </div>
+            <div className="rounded-xl border bg-card p-4 shadow-xs">
+              <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                <Calendar className="size-4 text-primary" /> Jadwal
+              </div>
+              <p className="mt-1.5 text-sm font-bold">{dateLabel}</p>
+              <p className="text-xs text-muted-foreground">{durasi} (24 jam)</p>
+            </div>
+            <div className="rounded-xl border bg-card p-4 shadow-xs">
+              <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                <ClipboardCheck className="size-4 text-primary" /> Status
+              </div>
+              <p className="mt-1.5 text-sm font-bold">
+                {isActive ? "Berlangsung" : ujian.status === "upcoming" ? "Mendatang" : "Selesai"}
+              </p>
+              <p className="text-xs text-muted-foreground">Waktu berjalan otomatis</p>
+            </div>
+            <div className="rounded-xl border bg-card p-4 shadow-xs">
+              <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                <Users className="size-4 text-primary" /> Peserta & Soal
+              </div>
+              <p className="mt-1.5 text-sm font-bold">{soalList.length} soal</p>
+              <p className="text-xs text-muted-foreground">{ujian.totalStudents} siswa terdaftar</p>
+            </div>
+          </div>
+
+          {/* Soal list (read-only) */}
+          <div>
+            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Daftar Soal Ujian ({soalList.length})
+            </h2>
+            {soalList.length === 0 ? (
+              <div className="rounded-xl border bg-card p-10 text-center shadow-xs">
+                <AlertTriangle className="mx-auto size-8 text-amber-500" />
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Belum ada soal yang dilampirkan ke ujian ini.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {soalList.map((s, i) => (
+                  <div key={s.id} className="rounded-xl border bg-card p-4 shadow-xs">
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="flex-1 text-sm font-medium leading-snug whitespace-pre-wrap">
+                        <span className="mr-1.5 font-bold text-primary">{i + 1}.</span>
+                        {s.question}
+                      </p>
+                      <Badge variant="outline" className="shrink-0 text-[10px]">
+                        {s.type}
+                      </Badge>
+                    </div>
+                    {s.type === "Pilihan Ganda" && s.options.length > 0 && (
+                      <div className="mt-3 grid gap-1.5 sm:grid-cols-2">
+                        {s.options.map((opt, oi) => {
+                          const letter = String.fromCharCode(65 + oi);
+                          const isKey = staffView && letter === s.answer.trim().toUpperCase();
+                          return (
+                            <div
+                              key={oi}
+                              className={`flex items-start gap-2 rounded-lg border px-3 py-2 text-[13px] ${
+                                isKey ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600" : "border-border bg-muted/30"
+                              }`}
+                            >
+                              <span className="font-semibold">{letter}.</span>
+                              <span className="flex-1">{opt}</span>
+                              {isKey && <CheckCircle className="mt-0.5 size-3.5 shrink-0" />}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {staffView && s.answer && (
+                      <p className="mt-2 text-[11px] text-emerald-600">
+                        <CheckCircle className="inline size-3 mr-1" />
+                        Kunci jawaban: <b>{s.answer}</b>
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </DashboardShell>
     );
@@ -437,7 +585,7 @@ export default function UjianDetail() {
             </div>
 
             <p className="mt-4 text-xs text-muted-foreground">
-              Dikerjakan: {new Date(result.submittedAt).toLocaleString("id-ID")}
+              Dikerjakan: {new Date(result.submittedAt).toLocaleString("id-ID", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false })}
             </p>
           </Card3D>
 

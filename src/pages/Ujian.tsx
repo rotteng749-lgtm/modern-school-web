@@ -5,6 +5,7 @@ import {
   Calendar,
   Users,
   PlayCircle,
+  Lock,
   Search,
   Plus,
   FileText,
@@ -40,6 +41,7 @@ import {
 import { getSubjects, initSubjects } from "@/lib/subjects-store";
 import type { SoalItem } from "@/pages/BankSoal";
 import { toast } from "sonner";
+import { useLocalAuth } from "@/hooks/use-local-auth";
 
 /* ═══════════════════════════════════════════
    UJIAN / CBT — Yayasan Mambaul Hasan
@@ -93,6 +95,10 @@ const EMPTY_FORM = {
 };
 
 export default function Ujian() {
+  const { user: authUser } = useLocalAuth();
+  const role = authUser?.role ?? "siswa";
+  const canManage = role === "admin" || role === "guru";
+  const canTake = role === "siswa";
   const [ujianList, setUjianList] = useState<UjianData[]>([]);
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -184,6 +190,7 @@ export default function Ujian() {
   };
 
   const openEdit = (u: UjianData) => {
+    if (!canManage) return;
     setEditingId(u.id);
     setForm({
       name: u.name,
@@ -201,6 +208,7 @@ export default function Ujian() {
   };
 
   const handleSave = () => {
+    if (!canManage) return;
     if (!form.name || !form.className || !form.subject || !form.date) return;
 
     const questionIds = Array.from(selectedSoal);
@@ -227,6 +235,7 @@ export default function Ujian() {
   };
 
   const handleDelete = (id: string) => {
+    if (!canManage) return;
     if (confirm("Hapus ujian ini?")) {
       save(ujianList.filter((u) => u.id !== id));
     }
@@ -249,10 +258,18 @@ export default function Ujian() {
               Kelola ujian berbasis komputer — {ujianList.length} ujian terdaftar
             </p>
           </div>
-          <Button size="sm" className="rounded-full" onClick={openAdd}>
-            <Plus className="size-4" />
-            Buat Ujian
-          </Button>
+          {canManage && (
+            <Button size="sm" className="rounded-full" onClick={openAdd}>
+              <Plus className="size-4" />
+              Buat Ujian
+            </Button>
+          )}
+          {!canManage && (
+            <Badge variant="secondary" className="gap-1 text-[11px]">
+              <Lock className="size-3" />
+              {canTake ? "Mode Siswa" : "Mode Pantau"}
+            </Badge>
+          )}
         </div>
 
         {/* Search */}
@@ -289,7 +306,11 @@ export default function Ujian() {
             <Card3D intensity={1} className="p-12 text-center obsidian-sheen">
               <ClipboardCheck className="size-8 mx-auto text-muted-foreground/40 mb-3" />
               <p className="text-sm text-muted-foreground">
-                {search ? "Tidak ada ujian yang cocok." : "Belum ada ujian. Klik \"Buat Ujian\" untuk membuat."}
+                {search
+                  ? "Tidak ada ujian yang cocok."
+                  : canManage
+                    ? "Belum ada ujian. Klik \"Buat Ujian\" untuk membuat."
+                    : "Belum ada ujian yang dijadwalkan."}
               </p>
             </Card3D>
           ) : (
@@ -337,16 +358,29 @@ export default function Ujian() {
                     <div className="flex items-center gap-1 shrink-0">
                       <Link to={`/ujian/${ujian.id}`}>
                         <Button size="sm" className="rounded-full text-xs">
-                          <PlayCircle className="size-3.5" />
-                          {ujian.status === "finished" ? "Ulangi" : "Mulai CBT"}
+                          {canTake ? (
+                            <>
+                              <PlayCircle className="size-3.5" />
+                              {ujian.status === "finished" ? "Ulangi" : "Mulai CBT"}
+                            </>
+                          ) : (
+                            <>
+                              <Eye className="size-3.5" />
+                              {canManage ? "Monitor" : "Lihat"}
+                            </>
+                          )}
                         </Button>
                       </Link>
-                      <Button variant="ghost" size="icon-sm" onClick={() => openEdit(ujian)} title="Edit">
-                        <Edit className="size-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="icon-sm" onClick={() => handleDelete(ujian.id)} title="Hapus">
-                        <Trash2 className="size-3.5 text-destructive" />
-                      </Button>
+                      {canManage && (
+                        <>
+                          <Button variant="ghost" size="icon-sm" onClick={() => openEdit(ujian)} title="Edit">
+                            <Edit className="size-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon-sm" onClick={() => handleDelete(ujian.id)} title="Hapus">
+                            <Trash2 className="size-3.5 text-destructive" />
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </Card3D>
