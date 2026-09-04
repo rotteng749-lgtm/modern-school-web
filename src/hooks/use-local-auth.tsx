@@ -143,10 +143,13 @@ export function LocalAuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   }, []);
 
-  const signIn = useCallback(async (username: string, password: string) => {
-    // 1. Check msw-users (admin, sync'd guru/murid)
+  const signIn = useCallback(async (rawUsername: string, password: string) => {
+    const username = rawUsername.trim().toLowerCase();
+
+    // 1. Check msw-users (admin, sync'd guru/murid) — case-insensitive key lookup
     const users = getUsers();
-    let entry = users[username];
+    const userKey = Object.keys(users).find((k) => k.toLowerCase() === username);
+    let entry = userKey ? users[userKey] : undefined;
 
     // 2. If not found, scan msw-murid for student credentials
     if (!entry || entry.password !== password) {
@@ -156,10 +159,10 @@ export function LocalAuthProvider({ children }: { children: ReactNode }) {
           const muridList: Array<{ username?: string; password?: string; name: string; status?: string }>
             = JSON.parse(muridRaw);
           const found = muridList.find(
-            (m) => m.username === username && m.password === password && m.status !== "keluar",
+            (m) => m.username && m.username.toLowerCase() === username && m.password === password && m.status !== "keluar",
           );
           if (found) {
-            entry = { password, user: { username, name: found.name, role: "siswa" } };
+            entry = { password, user: { username: found.username!, name: found.name, role: "siswa" } };
           }
         }
       } catch { /* ignore */ }
@@ -173,10 +176,10 @@ export function LocalAuthProvider({ children }: { children: ReactNode }) {
           const guruList: Array<{ username?: string; password?: string; name: string; status?: string }>
             = JSON.parse(guruRaw);
           const found = guruList.find(
-            (g) => g.username === username && g.password === password && g.status !== "nonaktif",
+            (g) => g.username && g.username.toLowerCase() === username && g.password === password && g.status !== "nonaktif",
           );
           if (found) {
-            entry = { password, user: { username, name: found.name, role: "guru" } };
+            entry = { password, user: { username: found.username!, name: found.name, role: "guru" } };
           }
         }
       } catch { /* ignore */ }

@@ -39,6 +39,13 @@ import {
 import { FileUpload } from "@/components/FileUpload";
 import { parseDocx, type ParsedStudent } from "@/lib/docx-import";
 import { useLocalAuth } from "@/hooks/use-local-auth";
+import { toast } from "sonner";
+import {
+  validateCredentials,
+  usernameTaken,
+  sanitizeText,
+  sanitizeNumeric,
+} from "@/lib/security";
 
 /* ═══════════════════════════════════════════
    MURID MANAGEMENT — Yayasan Mambaul Hasan
@@ -132,7 +139,11 @@ export default function Murid() {
 
   const save = (list: MuridData[]) => {
     setMuridList(list);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    } catch {
+      toast.error("Penyimpanan penuh — data belum tersimpan. Hapus foto besar atau kurangi data.");
+    }
   };
 
   const filtered = muridList.filter((m) => {
@@ -160,23 +171,47 @@ export default function Murid() {
   const handleSave = () => {
     if (!form.name || !form.className) return;
 
+    // Sanitize plain-text fields
+    const name = sanitizeText(form.name);
+    const parentName = sanitizeText(form.parentName ?? "");
+    const nisn = sanitizeNumeric(form.nisn);
+
+    // Credentials: both-or-neither, validated + normalized
+    const hasCred = Boolean(form.username || form.password);
+    let username = "";
+    let password = "";
+    if (hasCred) {
+      const v = validateCredentials(form.username ?? "", form.password ?? "");
+      if (v.error) {
+        toast.error(v.error);
+        return;
+      }
+      username = v.username;
+      password = (form.password ?? "").trim();
+    }
+
+    const prevUsername = editingId ? muridList.find((m) => m.id === editingId)?.username ?? "" : "";
+    if (username && usernameTaken(username, prevUsername ? [prevUsername] : [])) {
+      toast.error(`Username "${username}" sudah dipakai. Pilih username lain.`);
+      return;
+    }
+
+    const cleaned = { ...form, name, parentName, nisn, username, password };
+
     if (editingId) {
       const prev = muridList.find((m) => m.id === editingId);
-      save(muridList.map((m) => (m.id === editingId ? { ...m, ...form } : m)));
-      // Sync to auth
-      if (form.username && form.password) {
-        if (prev?.username && prev.username !== form.username) {
-          auth.deleteUser(prev.username);
-        }
-        auth.addUser(form.username, form.password, form.name, "siswa");
+      save(muridList.map((m) => (m.id === editingId ? { ...m, ...cleaned } : m)));
+      // Sync to auth: update so password changes actually apply (addUser is a no-op on existing)
+      if (hasCred) {
+        auth.updateUser(prev?.username ?? "", username, password, name, "siswa");
+      } else if (prev?.username) {
+        auth.deleteUser(prev.username);
       }
     } else {
-      const newMurid: MuridData = { ...form, id: Date.now().toString() };
+      const newMurid: MuridData = { ...cleaned, id: Date.now().toString() };
       save([newMurid, ...muridList]);
       // Sync to auth
-      if (form.username && form.password) {
-        auth.addUser(form.username, form.password, form.name, "siswa");
-      }
+      if (hasCred) auth.addUser(username, password, name, "siswa");
     }
     setDialogOpen(false);
   };

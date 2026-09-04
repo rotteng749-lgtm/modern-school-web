@@ -148,7 +148,11 @@ export default function BankSoal() {
 
   const save = (list: SoalItem[]) => {
     setSoalList(list);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    } catch {
+      toast.error("Penyimpanan penuh — soal belum tersimpan.");
+    }
   };
 
   /* ── Filtered list ── */

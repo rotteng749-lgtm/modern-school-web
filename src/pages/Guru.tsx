@@ -34,6 +34,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { FileUpload } from "@/components/FileUpload";
+import { toast } from "sonner";
+import {
+  validateCredentials,
+  usernameTaken,
+  sanitizeText,
+  sanitizeNumeric,
+} from "@/lib/security";
 
 /* ═══════════════════════════════════════════
    GURU MANAGEMENT — Modern School Web
@@ -109,7 +116,11 @@ export default function Guru() {
 
   const save = (list: GuruData[]) => {
     setGuruList(list);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    } catch {
+      toast.error("Penyimpanan penuh — data belum tersimpan. Hapus foto besar atau kurangi data.");
+    }
   };
 
   const filtered = guruList.filter(
@@ -134,20 +145,46 @@ export default function Guru() {
   const handleSave = () => {
     if (!form.name || !form.subject) return;
 
+    // Sanitize plain-text fields
+    const name = sanitizeText(form.name);
+    const nip = sanitizeNumeric(form.nip);
+
+    // Credentials: both-or-neither, validated + normalized
+    const hasCred = Boolean(form.username || form.password);
+    let username = "";
+    let password = "";
+    if (hasCred) {
+      const v = validateCredentials(form.username ?? "", form.password ?? "");
+      if (v.error) {
+        toast.error(v.error);
+        return;
+      }
+      username = v.username;
+      password = (form.password ?? "").trim();
+    }
+
+    const prevUsername = editingId ? guruList.find((g) => g.id === editingId)?.username ?? "" : "";
+    if (username && usernameTaken(username, prevUsername ? [prevUsername] : [])) {
+      toast.error(`Username "${username}" sudah dipakai. Pilih username lain.`);
+      return;
+    }
+
+    const cleaned = { ...form, name, nip, username, password };
+
     if (editingId) {
       const prev = guruList.find((g) => g.id === editingId);
-      save(guruList.map((g) => (g.id === editingId ? { ...g, ...form } : g)));
-      // Sync to auth
-      if (form.username && form.password) {
-        auth.updateUser(prev?.username || "", form.username, form.password, form.name, "guru");
+      save(guruList.map((g) => (g.id === editingId ? { ...g, ...cleaned } : g)));
+      // Sync to auth (update handles username change + password change)
+      if (hasCred) {
+        auth.updateUser(prev?.username || "", username, password, name, "guru");
+      } else if (prev?.username) {
+        auth.deleteUser(prev.username);
       }
     } else {
-      const newGuru: GuruData = { ...form, id: Date.now().toString() };
+      const newGuru: GuruData = { ...cleaned, id: Date.now().toString() };
       save([newGuru, ...guruList]);
       // Sync to auth
-      if (form.username && form.password) {
-        auth.addUser(form.username, form.password, form.name, "guru");
-      }
+      if (hasCred) auth.addUser(username, password, name, "guru");
     }
     setDialogOpen(false);
   };

@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/select";
 import { getSubjects, initSubjects } from "@/lib/subjects-store";
 import type { SoalItem } from "@/pages/BankSoal";
+import { toast } from "sonner";
 
 /* ═══════════════════════════════════════════
    UJIAN / CBT — Yayasan Mambaul Hasan
@@ -135,7 +136,11 @@ export default function Ujian() {
 
   const save = (list: UjianData[]) => {
     setUjianList(list);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    } catch {
+      toast.error("Penyimpanan penuh — ujian belum tersimpan.");
+    }
   };
 
   const filtered = ujianList.filter(
