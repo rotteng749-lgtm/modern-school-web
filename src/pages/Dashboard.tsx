@@ -10,6 +10,7 @@ import {
   Calendar,
   Clock,
   FileText,
+  Server,
   CheckCircle,
   BarChart3,
   AlertCircle,
@@ -179,6 +180,7 @@ const ADMIN_SHORTCUTS = [
   { label: "Kelola Guru", icon: Users, href: "/guru", desc: "Data tenaga pengajar" },
   { label: "Kelola Murid", icon: GraduationCap, href: "/murid", desc: "Data siswa aktif" },
   { label: "Bank Soal", icon: Trophy, href: "/bank-soal", desc: "Import & kelola soal" },
+  { label: "EBC Server", icon: Server, href: "/ebc-server", desc: "API Exam Browser Client" },
   { label: "Pengaturan", icon: FileText, href: "/pengaturan", desc: "Konfigurasi sistem" },
 ];
 
@@ -208,6 +210,7 @@ const GURU_SHORTCUTS = [
   { label: "Ujian / CBT", icon: ClipboardCheck, href: "/ujian", desc: "Monitoring ujian" },
   { label: "Absensi", icon: FileText, href: "/absensi", desc: "Rekap kehadiran kelas" },
   { label: "Pengumuman", icon: FileText, href: "/pengumuman", desc: "Lihat pengumuman" },
+  { label: "EBC Server", icon: Server, href: "/ebc-server", desc: "Kelola device & API EBC" },
 ];
 
 const GURU_CLASSES = [

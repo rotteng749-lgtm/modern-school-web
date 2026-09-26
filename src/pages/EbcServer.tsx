@@ -21,6 +21,8 @@ import {
   Loader2,
   ShieldCheck,
   Plug,
+  Terminal,
+  BookMarked,
 } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { DashboardShell } from "@/components/DashboardShell";
@@ -199,6 +201,7 @@ export default function EbcServer() {
             <TabsTrigger value="reset"><ShieldCheck className="size-3.5" /> Reset</TabsTrigger>
             <TabsTrigger value="key"><KeyRound className="size-3.5" /> API Key</TabsTrigger>
             <TabsTrigger value="qr"><QrCode className="size-3.5" /> QR / .cbt</TabsTrigger>
+            <TabsTrigger value="api"><Terminal className="size-3.5" /> API</TabsTrigger>
           </TabsList>
 
           <TabsContent value="sekolah"><SchoolsTab apiKey={apiKey} /></TabsContent>
@@ -209,6 +212,9 @@ export default function EbcServer() {
           <TabsContent value="reset"><ResetTab apiKey={apiKey} schoolCode={schoolCode} /></TabsContent>
           <TabsContent value="key"><ApiKeyTab apiKey={apiKey} schoolCode={schoolCode} /></TabsContent>
           <TabsContent value="qr"><QrTab /></TabsContent>
+          <TabsContent value="api">
+            <ApiDocsTab apiKey={apiKey} schoolCode={schoolCode} />
+          </TabsContent>
         </Tabs>
       </div>
     </DashboardShell>
@@ -1189,6 +1195,299 @@ function QrTab() {
           </div>
         </Card3D>
       )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════
+   Dokumentasi API + live request tester
+   ═══════════════════════════════════════════ */
+interface EndpointMeta {
+  key: string;
+  desc: string;
+  method: "GET" | "POST";
+  params: { name: string; hint: string; required: boolean }[];
+}
+
+const ENDPOINTS: EndpointMeta[] = [
+  {
+    key: "config",
+    desc: "Konfigurasi sekolah: identitas, fitur aplikasi, slider, kalender, menu.",
+    method: "GET",
+    params: [
+      { name: "code", hint: "school_code", required: true },
+      { name: "username", hint: "alternatif school_code", required: false },
+    ],
+  },
+  {
+    key: "exams",
+    desc: "Daftar ujian beserta seluruh toggle kiosk (token, pin layar, screenshot, dll).",
+    method: "GET",
+    params: [{ name: "code", hint: "school_code", required: true }],
+  },
+  {
+    key: "announcements",
+    desc: "Pengumuman sekolah.",
+    method: "GET",
+    params: [{ name: "code", hint: "school_code", required: true }],
+  },
+  {
+    key: "calendar",
+    desc: "Agenda / kalender sekolah.",
+    method: "GET",
+    params: [{ name: "code", hint: "school_code", required: true }],
+  },
+  {
+    key: "menus",
+    desc: "Menu kustom yang ditampilkan di client.",
+    method: "GET",
+    params: [{ name: "code", hint: "school_code", required: true }],
+  },
+  {
+    key: "page",
+    desc: "Halaman statis (konten HTML) berdasarkan slug.",
+    method: "GET",
+    params: [
+      { name: "code", hint: "school_code", required: true },
+      { name: "slug", hint: "mis. profil", required: true },
+    ],
+  },
+  {
+    key: "register_device",
+    desc: "Registrasi/update device. POST form-urlencoded.",
+    method: "POST",
+    params: [
+      { name: "code", hint: "school_code", required: true },
+      { name: "username", hint: "akun siswa", required: false },
+      { name: "token", hint: "FCM token", required: false },
+      { name: "platform", hint: "android", required: false },
+      { name: "app_version", hint: "4.1", required: false },
+    ],
+  },
+  {
+    key: "verify_violation_reset",
+    desc: "Tukar kode reset pelanggaran. Sekali pakai + ada masa berlaku.",
+    method: "GET",
+    params: [
+      { name: "code", hint: "school_code", required: true },
+      { name: "reset_code", hint: "kode dari guru", required: true },
+    ],
+  },
+];
+
+const DEVICE_HEADERS = [
+  ["X-API-KEY", "WAJIB. Kunci API (milik kita sendiri)."],
+  ["X-Device-ID", "SharedPreferences device_id — unik per install."],
+  ["X-Package-Name", "package APK saat ini."],
+  ["X-App-Signature", "SHA-256 signing certificate APK."],
+  ["X-App-Version", "versionName, mis. 4.1"],
+  ["X-Install-Source", "playstore / sideload"],
+  ["X-School-Username", "username sekolah kalau sudah login"],
+];
+
+function ApiDocsTab({ apiKey, schoolCode }: { apiKey: string; schoolCode: string }) {
+  const [active, setActive] = useState<EndpointMeta>(ENDPOINTS[0]);
+  const [values, setValues] = useState<Record<string, string>>({});
+  const [response, setResponse] = useState<string | null>(null);
+  const [httpNote, setHttpNote] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const select = (ep: EndpointMeta) => {
+    setActive(ep);
+    setValues(
+      Object.fromEntries(ep.params.map((p) => [p.name, p.name === "code" ? schoolCode : ""])),
+    );
+    setResponse(null);
+    setHttpNote(null);
+  };
+
+  const indexUrl = `${BASE_URL}?x=${active.key}${
+    values.code ? `&code=${encodeURIComponent(values.code)}` : ""
+  }${values.slug ? `&slug=${encodeURIComponent(values.slug)}` : ""}${
+    values.reset_code ? `&reset_code=${encodeURIComponent(values.reset_code)}` : ""
+  }`;
+
+  const send = async () => {
+    setBusy(true);
+    setResponse(null);
+    setHttpNote(null);
+    try {
+      // 1) Coba rute index.php yang dipakai APK
+      if (CONVEX_URL) {
+        try {
+          const res = await fetch(indexUrl, {
+            method: active.method,
+            headers: {
+              "X-API-KEY": apiKey,
+              "X-Device-ID": "console-tester",
+              "X-App-Version": "4.1",
+            },
+          });
+          if (res.ok) {
+            setResponse(await res.text());
+            setBusy(false);
+            return;
+          }
+          setHttpNote(`Rute index.php membalas HTTP ${res.status} — deployment ini tidak menyajikan custom HTTP route.`);
+        } catch {
+          setHttpNote("index.php tidak bisa dijangkau.");
+        }
+      }
+
+      // 2) Fallback: kontrak yang sama lewat action Convex
+      const payload: Record<string, string> = { x: active.key, apiKey, code: values.code ?? "" };
+      if (values.username) payload.username = values.username;
+      if (values.slug) payload.slug = values.slug;
+      if (values.reset_code) payload.reset_code = values.reset_code;
+      if (active.key === "register_device") {
+        payload.deviceId = values.deviceId || "console-tester";
+        payload.platform = values.platform || "android";
+        payload.appVersion = values.app_version || "4.1";
+        payload.token = values.token || "";
+        payload.schoolUsername = values.username || "";
+      }
+
+      const res = await fetch(`${CONVEX_URL}/api/action`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path: "ebcHttp:handle", args: payload, format: "json" }),
+      });
+      const text = await res.text();
+      try {
+        const parsed = JSON.parse(text) as { value?: unknown };
+        setResponse(JSON.stringify(parsed.value ?? parsed, null, 2));
+      } catch {
+        setResponse(text);
+      }
+    } catch (err) {
+      setResponse(JSON.stringify({ error: err instanceof Error ? err.message : "Gagal" }, null, 2));
+    }
+    setBusy(false);
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Ringkasan kontrak */}
+      <Card3D intensity={2} className="p-5 obsidian-sheen">
+        <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <BookMarked className="size-4" /> Kontrak
+        </h2>
+        <div className="mt-3 space-y-2 text-xs">
+          <p>
+            <strong>BASE_URL</strong>{" "}
+            <code className="rounded bg-muted px-1 py-0.5">{BASE_URL}</code>
+          </p>
+          <p>
+            <strong>Endpoint</strong> <code className="rounded bg-muted px-1 py-0.5">/index.php?x=&lt;aksi&gt;</code>
+          </p>
+          <p>
+            <strong>Format respons</strong> (semua endpoint)
+          </p>
+          <pre className="overflow-x-auto rounded-md border bg-muted p-2.5 text-[11px]">
+{`{
+  "status": true,
+  "message": "OK",
+  "data": { ... }
+}`}
+          </pre>
+          <p className="text-muted-foreground">
+            Kalau <code>status:false</code>, client menampilkan <code>message</code> ke siswa.
+          </p>
+        </div>
+
+        <h3 className="mt-5 text-xs font-semibold">Header yang dikirim client</h3>
+        <div className="mt-2 overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b text-left text-muted-foreground">
+                <th className="p-2 font-medium">Header</th>
+                <th className="p-2 font-medium">Keterangan</th>
+              </tr>
+            </thead>
+            <tbody>
+              {DEVICE_HEADERS.map(([h, d]) => (
+                <tr key={h} className="border-b last:border-0">
+                  <td className="p-2 font-mono">{h}</td>
+                  <td className="p-2 text-muted-foreground">{d}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card3D>
+
+      {/* Tester */}
+      <Card3D intensity={2} className="p-5 obsidian-sheen">
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Tester — coba langsung
+        </h2>
+
+        <div className="flex flex-wrap gap-1.5">
+          {ENDPOINTS.map((ep) => (
+            <Button
+              key={ep.key}
+              size="sm"
+              variant={active.key === ep.key ? "default" : "outline"}
+              onClick={() => select(ep)}
+            >
+              {ep.method} {ep.key}
+            </Button>
+          ))}
+        </div>
+
+        <p className="mt-3 text-xs text-muted-foreground">{active.desc}</p>
+
+        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {active.params.map((p) => (
+            <Field key={p.name} label={`${p.name}${p.required ? " *" : ""}`}>
+              <Input
+                value={values[p.name] ?? ""}
+                onChange={(e) => setValues({ ...values, [p.name]: e.target.value })}
+                placeholder={p.hint}
+                className="font-mono text-xs"
+              />
+            </Field>
+          ))}
+          {active.key === "register_device" && (
+            <Field label="X-Device-ID">
+              <Input
+                value={values.deviceId ?? ""}
+                onChange={(e) => setValues({ ...values, deviceId: e.target.value })}
+                placeholder="dev-andro-001"
+                className="font-mono text-xs"
+              />
+            </Field>
+          )}
+        </div>
+
+        <div className="mt-3">
+          <Label className="text-xs">URL yang dipanggil APK</Label>
+          <code className="mt-1 block overflow-x-auto rounded-md border bg-muted p-2 text-[11px]">
+            {indexUrl}
+          </code>
+        </div>
+
+        <Button className="mt-4" onClick={send} disabled={busy}>
+          {busy ? <Loader2 className="size-4 animate-spin" /> : <Terminal className="size-4" />}
+          Kirim Request
+        </Button>
+
+        {httpNote && (
+          <p className="mt-3 flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-400">
+            <span className="mt-0.5 size-2 shrink-0 rounded-full bg-current" />
+            {httpNote} Hasil di bawah diambil lewat endpoint action Convex — logikanya sama persis.
+          </p>
+        )}
+
+        {response && (
+          <div className="mt-3">
+            <Label className="text-xs">Respons</Label>
+            <pre className="mt-1 max-h-96 overflow-auto rounded-md border bg-muted p-3 text-[11px] leading-relaxed">
+              {response}
+            </pre>
+          </div>
+        )}
+      </Card3D>
     </div>
   );
 }

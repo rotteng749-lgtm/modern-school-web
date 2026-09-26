@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   CloudUpload,
   QrCode,
+  Server,
   Radio,
   RefreshCw,
   ShieldAlert,
@@ -283,6 +284,13 @@ export default function EbcSesi() {
             <Button variant="outline" size="sm" onClick={handleClose} disabled={!sessionActive}>
               <Ban className="size-4" /> Tutup Sesi
             </Button>
+          )}
+          {!code && (
+            <Link to="/ebc-server">
+              <Button variant="outline" size="sm">
+                <Server className="size-4" /> Konfigurasi API
+              </Button>
+            </Link>
           )}
         </div>
 

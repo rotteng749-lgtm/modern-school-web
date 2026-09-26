@@ -17,6 +17,7 @@ import {
   Settings,
   Database,
   BookOpen,
+  Server,
 } from "lucide-react";
 import { YmhLogo } from "@/components/YmhLogo";
 import { SCHOOL_LOGO_PRESETS } from "@/components/SchoolLogos";
@@ -68,6 +69,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Database", icon: Database, href: "/database", roles: ["admin"] },
   { label: "Pengaturan", icon: Settings, href: "/pengaturan", roles: ["admin"] },
   { label: "Studio Elaina", icon: Sparkles, href: "/studio-elaina", roles: ["admin"] },
+  { label: "EBC Server", icon: Server, href: "/ebc-server", roles: ["admin", "guru"] },
 ];
 
 export function DashboardShell({ children }: { children: ReactNode }) {
