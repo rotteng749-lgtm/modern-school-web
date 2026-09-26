@@ -32,6 +32,7 @@ const DatabasePage = lazy(() => import("./pages/Database.tsx"));
 const MapelPage = lazy(() => import("./pages/Mapel.tsx"));
 const EbcClient = lazy(() => import("./pages/EbcClient.tsx"));
 const EbcSesi = lazy(() => import("./pages/EbcSesi.tsx"));
+const EbcServer = lazy(() => import("./pages/EbcServer.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 /** PWA: daftarkan service worker hanya di produksi agar tidak mengganggu HMR. */
@@ -311,6 +312,14 @@ createRoot(document.getElementById("root")!).render(
                 element={
                   <RequireAuth>
                     <EbcSesi />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/ebc-server"
+                element={
+                  <RequireAuth>
+                    <EbcServer />
                   </RequireAuth>
                 }
               />

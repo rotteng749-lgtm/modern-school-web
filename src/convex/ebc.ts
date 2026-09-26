@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { hashPassword, randomSalt, safeEqual } from "./password";
 
 /* ═══════════════════════════════════════════
    EBC — Exam Browser Client (backend)
@@ -67,7 +68,10 @@ const examValidator = v.object({
 /* ── Publish: kirim akun murid ke server ──
    Diperlukan karena akun dibuat di perangkat guru, sedangkan EBC
    dijalankan di HP siswa yang localStorage-nya kosong. Tanpa ini,
-   login di HP selalu gagal untuk akun yang dibuat di laptop guru. */
+   login di HP selalu gagal untuk akun yang dibuat di laptop guru.
+
+   Password di-hash PBKDF2-SHA256 + salt acak per siswa; plaintext
+   TIDAK lagi disimpan (kecuali baris lama yang belum di-republish). */
 export const publishRoster = mutation({
   args: {
     students: v.array(
@@ -84,6 +88,10 @@ export const publishRoster = mutation({
     for (const s of args.students) {
       const username = normalizeUsername(s.username);
       if (!USERNAME_RE.test(username)) continue;
+
+      const salt = randomSalt();
+      const hash = await hashPassword(s.password, salt);
+
       const existing = await ctx.db
         .query("ebcStudents")
         .withIndex("by_username", (q) => q.eq("username", username))
@@ -91,13 +99,15 @@ export const publishRoster = mutation({
       const payload = {
         username,
         name: s.name,
-        password: s.password,
+        passwordHash: hash,
+        passwordSalt: salt,
         className: s.className,
         active: true,
         publishedAt: Date.now(),
       };
       if (existing) {
-        await ctx.db.patch(existing._id, payload);
+        // Hapus password plaintext lama saat republish
+        await ctx.db.patch(existing._id, { ...payload, password: undefined });
       } else {
         await ctx.db.insert("ebcStudents", payload);
       }
@@ -118,7 +128,17 @@ export const verifyStudent = query({
       .withIndex("by_username", (q) => q.eq("username", username))
       .unique();
     if (!student || !student.active) return null;
-    if (student.password !== args.password) return null;
+
+    let ok = false;
+    if (student.passwordHash && student.passwordSalt) {
+      const computed = await hashPassword(args.password, student.passwordSalt);
+      ok = safeEqual(computed, student.passwordHash);
+    } else if (student.password) {
+      // Baris lama yang belum di-republish
+      ok = safeEqual(args.password, student.password);
+    }
+    if (!ok) return null;
+
     return { username: student.username, name: student.name, className: student.className };
   },
 });
