@@ -30,7 +30,19 @@ const AnalyticsPage = lazy(() => import("./pages/Analytics.tsx"));
 const InboxPage = lazy(() => import("./pages/Inbox.tsx"));
 const DatabasePage = lazy(() => import("./pages/Database.tsx"));
 const MapelPage = lazy(() => import("./pages/Mapel.tsx"));
+const EbcClient = lazy(() => import("./pages/EbcClient.tsx"));
+const EbcSesi = lazy(() => import("./pages/EbcSesi.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
+
+/** PWA: daftarkan service worker hanya di produksi agar tidak mengganggu HMR. */
+function ServiceWorkerRegistrar() {
+  useEffect(() => {
+    if (!import.meta.env.PROD) return;
+    if (!("serviceWorker" in navigator)) return;
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  }, []);
+  return null;
+}
 
 // Simple loading fallback for route transitions
 function RouteLoading() {
@@ -133,6 +145,7 @@ createRoot(document.getElementById("root")!).render(
         <VlyToolbar />
       </ToolbarErrorBoundary>
       <ConvexWrapper>
+      <ServiceWorkerRegistrar />
       <LocalAuthProvider>
         <BrowserRouter>
           <RouteSyncer />
@@ -286,6 +299,18 @@ createRoot(document.getElementById("root")!).render(
                 element={
                   <RequireAuth>
                     <Profil />
+                  </RequireAuth>
+                }
+              />
+              {/* EBC — Exam Browser Client. Client TIDAK memakai RequireAuth:
+                  siswa login di dalam aplikasi lewat form EBC. */}
+              <Route path="/exam-client" element={<EbcClient />} />
+              <Route path="/exam-client/join" element={<EbcClient />} />
+              <Route
+                path="/ujian/:id/ebc"
+                element={
+                  <RequireAuth>
+                    <EbcSesi />
                   </RequireAuth>
                 }
               />

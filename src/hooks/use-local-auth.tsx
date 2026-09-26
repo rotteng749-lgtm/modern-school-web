@@ -125,6 +125,11 @@ interface AuthCtx {
   addUser: (username: string, password: string, name: string, role: Role, childId?: string) => boolean;
   updateUser: (oldUsername: string, newUsername: string, password: string, name: string, role: Role, childId?: string) => boolean;
   deleteUser: (username: string) => void;
+  /**
+   * Membuat session lokal untuk identitas yang sudah diverifikasi server (EBC).
+   * Password TIDAK disimpan — cukup username + nama.
+   */
+  adoptVerifiedUser: (username: string, name: string) => void;
 }
 
 const Ctx = createContext<AuthCtx | null>(null);
@@ -226,8 +231,18 @@ export function LocalAuthProvider({ children }: { children: ReactNode }) {
     saveUsers(users);
   }, []);
 
+  const adoptVerifiedUser = useCallback((username: string, name: string) => {
+    const normalized = username.trim().toLowerCase();
+    if (!normalized) return;
+    const adopted: LocalUser = { username: normalized, name, role: "siswa" };
+    setUser(adopted);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(adopted));
+    } catch { /* abaikan */ }
+  }, []);
+
   return (
-    <Ctx.Provider value={{ user, isLoading, signIn, signOut, addUser, updateUser, deleteUser }}>
+    <Ctx.Provider value={{ user, isLoading, signIn, signOut, addUser, updateUser, deleteUser, adoptVerifiedUser }}>
       {children}
     </Ctx.Provider>
   );

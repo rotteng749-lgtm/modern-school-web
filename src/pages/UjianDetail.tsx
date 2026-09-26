@@ -18,6 +18,7 @@ import {
   BookOpen,
   ClipboardCheck,
   ShieldAlert,
+  QrCode,
 } from "lucide-react";
 import { Card3D } from "@/components/Card3D";
 import { DashboardShell } from "@/components/DashboardShell";
@@ -498,6 +499,11 @@ export default function UjianDetail() {
                 </p>
               </div>
             </div>
+            <Link to={`/ujian/${ujian.id}/ebc`} className="shrink-0">
+              <Button>
+                <QrCode className="size-4" /> Buka Sesi EBC
+              </Button>
+            </Link>
           </div>
 
           {/* Info summary */}
