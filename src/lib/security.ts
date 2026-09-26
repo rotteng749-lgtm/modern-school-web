@@ -16,7 +16,10 @@
 const LOGIN_ATTEMPT_KEY = "msw-login-attempts";
 export const MAX_USERNAME_LEN = 32;
 export const MAX_PASSWORD_LEN = 64;
-export const MIN_PASSWORD_LEN = 6;
+/** Hard floor — below this a password is refused outright. */
+export const MIN_PASSWORD_LEN = 4;
+/** Soft target — below this we warn but still allow (admin sets these accounts). */
+export const RECOMMENDED_PASSWORD_LEN = 6;
 /** Allowed: letters, digits, . _ - (lowercased before check) */
 const USERNAME_RE = /^[a-z0-9._-]{3,32}$/;
 const TEXT_MAX = 500;
@@ -38,7 +41,7 @@ export function validateUsername(raw: string): string | null {
   return null;
 }
 
-/** Returns an error message or null when valid. */
+/** Hard rules only: empty / too short / too long / illegal characters. */
 export function validatePassword(pw: string): string | null {
   if (!pw) return "Password wajib diisi.";
   if (pw.length < MIN_PASSWORD_LEN) return `Password minimal ${MIN_PASSWORD_LEN} karakter.`;
@@ -47,11 +50,44 @@ export function validatePassword(pw: string): string | null {
   return null;
 }
 
-export function validateCredentials(rawUsername: string, password: string): { username: string; error: string | null } {
+/**
+ * Non-blocking advice about a weak password. Admin-created school accounts are
+ * often short on purpose, so this is surfaced as a warning instead of a refusal.
+ */
+export function passwordWarning(pw: string): string | null {
+  if (!pw) return null;
+  if (pw.length < RECOMMENDED_PASSWORD_LEN) {
+    return `Password hanya ${pw.length} karakter — disarankan minimal ${RECOMMENDED_PASSWORD_LEN}.`;
+  }
+  if (/^(test|test123|1234|12345|123456|admin|password|qwerty|abc)/i.test(pw)) {
+    return "Password ini mudah ditebak — disarankan memakai kombinasi yang lebih unik.";
+  }
+  return null;
+}
+
+/**
+ * Validates a username/password pair.
+ *   error   → blocks saving (bad username, empty / oversized / illegal password)
+ *   warning → saved anyway, shown to the admin as advice
+ */
+export function validateCredentials(
+  rawUsername: string,
+  password: string,
+): { username: string; error: string | null; warning: string | null } {
   const username = normalizeUsername(rawUsername);
   const uErr = validateUsername(username);
-  if (uErr) return { username, error: uErr };
-  return { username, error: validatePassword(password) };
+  if (uErr) return { username, error: uErr, warning: null };
+
+  // Hard rules — these always block.
+  if (!password) return { username, error: "Password wajib diisi.", warning: null };
+  if (password.length > MAX_PASSWORD_LEN) {
+    return { username, error: `Password maksimal ${MAX_PASSWORD_LEN} karakter.`, warning: null };
+  }
+  if (/[\u0000-\u001f\u007f]/.test(password)) {
+    return { username, error: "Password mengandung karakter yang tidak diizinkan.", warning: null };
+  }
+  // Short or guessable passwords ("test1", "1234") are allowed but flagged.
+  return { username, error: null, warning: passwordWarning(password) };
 }
 
 /** Trim + strip control chars + cap length (plain text fields). */

@@ -188,6 +188,8 @@ export default function Murid() {
       }
       username = v.username;
       password = (form.password ?? "").trim();
+      // Weak-but-valid passwords still save; just advise the admin.
+      if (v.warning) toast.warning(v.warning);
     }
 
     const prevUsername = editingId ? muridList.find((m) => m.id === editingId)?.username ?? "" : "";

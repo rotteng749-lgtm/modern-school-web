@@ -143,8 +143,11 @@ export function LocalAuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   }, []);
 
-  const signIn = useCallback(async (rawUsername: string, password: string) => {
+  const signIn = useCallback(async (rawUsername: string, rawPassword: string) => {
     const username = rawUsername.trim().toLowerCase();
+    // Passwords are stored trimmed (see Murid/Guru handleSave) — match that here
+    // so leading/trailing whitespace can never lock a valid account out.
+    const password = rawPassword.trim();
 
     // 1. Check msw-users (admin, sync'd guru/murid) — case-insensitive key lookup
     const users = getUsers();

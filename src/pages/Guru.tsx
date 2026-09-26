@@ -161,6 +161,8 @@ export default function Guru() {
       }
       username = v.username;
       password = (form.password ?? "").trim();
+      // Weak-but-valid passwords still save; just advise the admin.
+      if (v.warning) toast.warning(v.warning);
     }
 
     const prevUsername = editingId ? guruList.find((g) => g.id === editingId)?.username ?? "" : "";
