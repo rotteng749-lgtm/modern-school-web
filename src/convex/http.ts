@@ -35,7 +35,17 @@ import { dispatchEbcRequest } from "./ebcDispatch";
 
 const http = httpRouter();
 
-auth.addHttpRoutes(http);
+/* Convex Auth registering its routes in a try/catch.
+   auth.config.ts reads process.env.CONVEX_SITE_URL — if that env var is
+   empty, the auth module throws at import time, and since this file
+   imports it, ALL routes in this file (including the EBC ones)
+   fail to register and the whole file 404s. Isolating it with
+   try/catch makes the EBC routes register even if auth is unavailable. */
+try {
+  auth.addHttpRoutes(http);
+} catch (err) {
+  console.error("Gagal mendaftarkan route Convex Auth (EBC route tetap aktif):", err);
+}
 
 const CORS_HEADERS: Record<string, string> = {
   "Content-Type": "application/json; charset=utf-8",
