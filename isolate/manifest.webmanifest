@@ -1,17 +1,37 @@
 {
-  "name": "freebuff.com application",
-  "short_name": "freebuff.com",
-  "description": "freebuff.com application",
-  "start_url": "/",
+  "name": "YMH Exam Browser Client",
+  "short_name": "EBC YMH",
+  "description": "Exam Browser Client — Yayasan Mambaul Hasan, Batur Gading, Probolinggo",
+  "id": "/exam-client",
+  "start_url": "/exam-client",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#000000",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "portrait",
+  "background_color": "#060a12",
+  "theme_color": "#060a12",
+  "lang": "id",
+  "dir": "ltr",
+  "categories": ["education", "productivity"],
   "icons": [
     {
-      "src": "/logo.png",
+      "src": "/logo.svg",
       "sizes": "any",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Scan QR Ujian",
+      "short_name": "Scan",
+      "url": "/exam-client"
     }
   ]
 }
