@@ -17,6 +17,7 @@ import {
   Users,
   BookOpen,
   ClipboardCheck,
+  ShieldAlert,
 } from "lucide-react";
 import { Card3D } from "@/components/Card3D";
 import { DashboardShell } from "@/components/DashboardShell";
@@ -26,6 +27,12 @@ import { Textarea } from "@/components/ui/textarea";
 import type { UjianData } from "./Ujian";
 import type { SoalItem } from "./BankSoal";
 import { useLocalAuth } from "@/hooks/use-local-auth";
+import {
+  useProctoring,
+  loadViolations,
+  VIOLATION_LABELS,
+  type Violation,
+} from "@/hooks/use-proctoring";
 
 /* ═══════════════════════════════════════════
    CBT EXAM — Fullscreen + Anti-cheat
@@ -45,6 +52,7 @@ interface ExamResult {
   unanswered: number;
   answers: Record<string, string>;
   submittedAt: string;
+  violations?: Violation[];
 }
 
 export default function UjianDetail() {
@@ -67,6 +75,32 @@ export default function UjianDetail() {
   const [backWarning, setBackWarning] = useState(false);
   const backWarningTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [started, setStarted] = useState(false);
+
+  /* ── Proctoring: deteksi keluar aplikasi / multi jendela / devtools ── */
+  const canTakeExam = currentUser?.role === "siswa";
+  const {
+    violations,
+    liveWarning,
+    record: recordViolation,
+    clear: clearProctoring,
+  } = useProctoring({
+    examId: id,
+    active: started && !submitted && canTakeExam,
+    username: currentUser?.username ?? "",
+  });
+  /** Setelah submit, keluar fullscreen tidak lagi dihitung sebagai pelanggaran. */
+  const examEndedRef = useRef(false);
+
+  /* Log pelanggaran untuk mode monitor (guru/admin) — polled ringan */
+  const [monitorViolations, setMonitorViolations] = useState<Violation[]>([]);
+
+  useEffect(() => {
+    if (canTakeExam) return;
+    const load = () => setMonitorViolations(loadViolations(id));
+    load();
+    const poll = setInterval(load, 3000);
+    return () => clearInterval(poll);
+  }, [canTakeExam, id]);
 
   // Load exam data + soal
   useEffect(() => {
@@ -160,7 +194,8 @@ export default function UjianDetail() {
     const onFsChange = () => {
       const fs = !!document.fullscreenElement;
       setIsFullscreen(fs);
-      if (!fs && started && !submitted) {
+      if (!fs && started && !submitted && !examEndedRef.current) {
+        recordViolation("keluar-fullscreen", "Keluar dari mode fullscreen di tengah ujian.");
         // Exited fullscreen — try to re-enter
         try {
           document.documentElement.requestFullscreen?.();
@@ -169,7 +204,7 @@ export default function UjianDetail() {
     };
     document.addEventListener("fullscreenchange", onFsChange);
     return () => document.removeEventListener("fullscreenchange", onFsChange);
-  }, [started, submitted]);
+  }, [started, submitted, recordViolation]);
 
   /* ── Anti-cheat: back button detection ── */
   useEffect(() => {
@@ -182,6 +217,8 @@ export default function UjianDetail() {
       // Push again to prevent actual navigation
       window.history.pushState(null, "", window.location.href);
 
+      recordViolation("kembali", "Mencoba navigasi ke halaman sebelumnya saat ujian berjalan.");
+
       if (backWarningTimeout.current) clearTimeout(backWarningTimeout.current);
       setBackWarning(true);
       backWarningTimeout.current = setTimeout(() => setBackWarning(false), 3000);
@@ -189,7 +226,7 @@ export default function UjianDetail() {
 
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
-  }, [started, submitted]);
+  }, [started, submitted, recordViolation]);
 
   /* ── Anti-cheat: block copy/paste/context menu ── */
   useEffect(() => {
@@ -316,6 +353,7 @@ export default function UjianDetail() {
     // Only the student taking the exam may submit — guards against
     // stray calls (e.g. timer) while the prompt/monitor view is open.
     if (!started || submitted || !soalList.length || !ujian) return;
+    examEndedRef.current = true;
 
     let correct = 0;
     let wrong = 0;
@@ -346,6 +384,7 @@ export default function UjianDetail() {
       unanswered,
       answers: { ...answers },
       submittedAt: new Date().toISOString(),
+      violations: [...violations],
     };
 
     setResult(examResult);
@@ -383,7 +422,7 @@ export default function UjianDetail() {
     if (document.fullscreenElement) {
       document.exitFullscreen?.().catch(() => {});
     }
-  }, [soalList, answers, ujian, id, started, submitted]);
+  }, [soalList, answers, ujian, id, started, submitted, violations]);
 
   const handleRetry = () => {
     setAnswers({});
@@ -393,6 +432,8 @@ export default function UjianDetail() {
     setResult(null);
     setShowFullscreenPrompt(true);
     setStarted(false);
+    examEndedRef.current = false;
+    clearProctoring();
     localStorage.removeItem(RESULT_KEY_PREFIX + id);
     localStorage.removeItem(ANSWER_KEY_PREFIX + id);
     localStorage.removeItem("msw-cbt-flagged-" + id);
@@ -400,7 +441,7 @@ export default function UjianDetail() {
 
   // Role gating: only siswa take the exam; admin/guru/orangtua monitor
   const role = currentUser?.role ?? "siswa";
-  const canTake = role === "siswa";
+  const canTake = canTakeExam;
   const isMonitor = !canTake;
   const staffView = role === "admin" || role === "guru";
 
@@ -493,6 +534,39 @@ export default function UjianDetail() {
             </div>
           </div>
 
+          {/* Log pelanggaran (diisi otomatis oleh proctoring) */}
+          <div className="rounded-xl border bg-card p-4 shadow-xs">
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                <ShieldAlert className="size-4 text-amber-500" /> Log Pelanggaran
+              </div>
+              <Badge variant="outline" className="text-xs">
+                {monitorViolations.length} kejadian
+              </Badge>
+            </div>
+            {monitorViolations.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Belum ada pelanggaran tercatat.</p>
+            ) : (
+              <ul className="space-y-2">
+                {monitorViolations.map((v) => (
+                  <li key={v.id} className="flex items-start gap-2 text-xs border rounded-lg p-2">
+                    <span className="font-mono text-muted-foreground shrink-0">
+                      {new Date(v.at).toLocaleString("id-ID", {
+                        day: "2-digit", month: "2-digit",
+                        hour: "2-digit", minute: "2-digit", second: "2-digit",
+                        hour12: false,
+                      })}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="font-semibold text-amber-600">{VIOLATION_LABELS[v.type]}</span>
+                      <span className="block text-muted-foreground">{v.detail}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
           {/* Soal list (read-only) */}
           <div>
             <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -556,6 +630,7 @@ export default function UjianDetail() {
 
   // Result screen
   if (submitted && result) {
+    const resultViolations = result.violations ?? [];
     return (
       <DashboardShell>
         <div className="max-w-2xl mx-auto space-y-6 py-8">
@@ -588,6 +663,37 @@ export default function UjianDetail() {
               Dikerjakan: {new Date(result.submittedAt).toLocaleString("id-ID", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false })}
             </p>
           </Card3D>
+
+          {/* Ringkasan pelanggaran */}
+          {resultViolations.length > 0 && (
+            <Card3D intensity={2} className="p-6 obsidian-sheen border-amber-500/40">
+              <div className="flex items-center gap-2 mb-1">
+                <ShieldAlert className="size-4 text-amber-500" />
+                <h3 className="font-semibold text-sm">
+                  Pelanggaran Selama Ujian ({resultViolations.length})
+                </h3>
+              </div>
+              <p className="text-xs text-muted-foreground mb-4">
+                Catatan ini akan terlihat oleh guru dan administrator.
+              </p>
+              <ul className="space-y-2">
+                {resultViolations.map((v) => (
+                  <li key={v.id} className="flex items-start gap-2 text-xs border rounded-lg p-2">
+                    <span className="font-mono text-muted-foreground shrink-0">
+                      {new Date(v.at).toLocaleTimeString("id-ID", {
+                        hour: "2-digit", minute: "2-digit", second: "2-digit",
+                        hour12: false,
+                      })}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="font-semibold text-amber-600">{VIOLATION_LABELS[v.type]}</span>
+                      <span className="block text-muted-foreground">{v.detail}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </Card3D>
+          )}
 
           {/* Review answers */}
           <Card3D intensity={2} className="p-6 obsidian-sheen">
@@ -695,6 +801,10 @@ export default function UjianDetail() {
             <p className="text-xs text-amber-500 mt-3">
               Layar akan fullscreen untuk mencegah kecurangan. Copy/paste dan tombol developer akan dinonaktifkan.
             </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Sistem otomatis mencatat bila Anda pindah tab/jendela, membuka aplikasi lain, membuka
+              jendela kedua untuk ujian ini, atau keluar dari fullscreen.
+            </p>
           </div>
           <div className="flex gap-3">
             <Button variant="outline" onClick={() => navigate("/ujian")}>
@@ -725,6 +835,20 @@ export default function UjianDetail() {
         </div>
       )}
 
+      {/* Proctoring: peringatan otomatis saat keluar aplikasi / multi jendela */}
+      {liveWarning && (
+        <div
+          className={`fixed left-0 right-0 z-[100] bg-amber-600 text-white text-center py-2 text-sm font-medium flex items-center justify-center gap-2 px-3 ${
+            backWarning ? "top-9" : "top-0"
+          }`}
+        >
+          <ShieldAlert className="size-4 shrink-0" />
+          <span className="min-w-0 truncate">
+            <strong>{VIOLATION_LABELS[liveWarning.type]}</strong> — {liveWarning.detail} Telah dicatat.
+          </span>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto px-4 py-3 space-y-3">
         {/* Top bar */}
         <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -747,6 +871,15 @@ export default function UjianDetail() {
               <Clock className="size-3.5" />
               <span className="font-mono text-sm font-bold">{formatTime(timeLeft)}</span>
             </div>
+            {violations.length > 0 && (
+              <div
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-amber-500/50 text-amber-500"
+                title="Jumlah pelanggaran proctoring yang terdeteksi"
+              >
+                <ShieldAlert className="size-3.5" />
+                <span className="font-mono text-sm font-bold">{violations.length}</span>
+              </div>
+            )}
           </div>
         </div>
 
